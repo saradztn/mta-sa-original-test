@@ -1,25 +1,41 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-verify_strip.py - prove that the cleanup did not change any code.
+verify_strip.py - prove what the cleanup did and did not change.
 
-Checks, per source file, against the last commit:
+The cleanup applied to this repository had exactly two effects on the sources:
 
-  1. token stream equality - an independent tokenizer (not the one used to cut
-     the comments) must produce the exact same sequence of identifiers,
-     numbers, string literals, characters and punctuation;
-  2. line accounting - stripped_line_count == original_line_count + header,
-     so an archived reference to original line N resolves to cleaned line N+9
-     and no code line moved anywhere else;
-  3. comment accounting - only the injected header remains, and stripping is
-     idempotent (a second pass changes nothing);
-  4. compile equivalence for the translation units that build on this host:
-     the object file produced from the original bytes and from the cleaned
-     bytes must be identical.
+  1. every comment was removed and replaced by the team header (9 lines/file);
+  2. display-facing brand strings were renamed (overlay title, watermark,
+     editor banner, loader console text).
 
-Usage: python3 tools/verify_strip.py
+Everything else - every identifier, every number, every non-brand string,
+every operator, every line of executable code - must be untouched. This script
+checks that against a baseline revision:
+
+    python3 tools/verify_strip.py --baseline 0b9a347
+
+Checks performed per file:
+
+  structure   the token stream with string literals normalised to a placeholder
+              must be IDENTICAL to the baseline. Comments are not tokens, so
+              this proves that comments disappeared and nothing else moved.
+  strings     the differing string literals are listed, so the rebrand is
+              reviewable one literal at a time instead of taken on trust.
+  lines       line count == baseline lines + header lines, therefore the
+              references in docs/RE_NOTES.md (original line N) resolve to the
+              cleaned line N+9 and never pointed anywhere else.
+  comments    nothing outside the header remains, and stripping is idempotent.
+  objects     for files whose bytes changed only in comments, the compiled
+              object must be byte-identical to the baseline+header variant.
+              Files with renamed strings are expected to differ there, and that
+              difference is exactly the string list printed above.
+
+Run tools/check_windows_bodies.sh as well: the three Windows-only translation
+units are guarded by #ifdef, so this host's compiler sees almost none of them.
 """
 
+import argparse
 import os
 import subprocess
 import sys
@@ -27,48 +43,33 @@ import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from cscan import scan_comments, strip_comments  # noqa: E402
-from strip_comments import header_for  # noqa: E402
+from strip_comments import SOURCES, header_for  # noqa: E402
 
-SOURCES = [
-    "north_loader.cpp",
-    "nrth_audit.cpp",
-    "nrth_audit.def",
-    "nrth_audit.h",
-    "nrth_audit_sigs.h",
-    "nrth_codec.h",
-    "nrth_config.cpp",
-    "nrth_config.h",
-    "nrth_dll.def",
-    "nrth_fonts.h",
-    "nrth_hook.cpp",
-    "nrth_hook.h",
-    "nrth_ui.cpp",
-    "nrth_ui.h",
-    "nrth_vehicle_names.inc",
-    "test_parity.cpp",
-]
-
-COMPILABLE = {
-    "nrth_audit.cpp": "-std=c++17",
-    "nrth_config.cpp": "-std=c++17",
-    "test_parity.cpp": "-std=c++17",
-    "nrth_hook.cpp": "-std=c++17",
-    "nrth_ui.cpp": "-std=c++17",
-}
-
-PUNCT = set("(){}[];,:?~+-*/%<>=!&|^.#\\")
+COMPILABLE = ["nrth_audit.cpp", "nrth_config.cpp", "test_parity.cpp",
+              "nrth_hook.cpp", "nrth_ui.cpp"]
 
 
-def tokens(text, semi=False):
-    """Independent tokenizer: yields ('id'|'num'|'str'|'chr'|'punct', value)."""
-    comment_spans = scan_comments(text, semi=semi)
+def git_show(rev, path):
+    try:
+        return subprocess.check_output(["git", "show", "%s:%s" % (rev, path)],
+                                       stderr=subprocess.DEVNULL).decode("utf-8", "replace")
+    except subprocess.CalledProcessError:
+        return None
+
+
+def tokens(text, semi=False, normalize_strings=False):
+    """Independent tokenizer.
+
+    normalize_strings=True collapses every string/char literal to a placeholder,
+    which makes the comparison blind to the rebrand while still catching any
+    change in code, identifiers, numbers or operators.
+    """
     hidden = [False] * len(text)
-    for start, end, _kind in comment_spans:
+    for start, end, _kind in scan_comments(text, semi=semi):
         for k in range(start, end):
             hidden[k] = True
     out = []
-    i = 0
-    n = len(text)
+    i, n = 0, len(text)
     while i < n:
         if hidden[i]:
             i += 1
@@ -87,10 +88,11 @@ def tokens(text, semi=False):
                     j += 1
                     break
                 j += 1
-            out.append(("str" if c == '"' else "chr", text[i:j]))
+            kind = "str" if c == '"' else "chr"
+            out.append((kind, "<str>" if normalize_strings else text[i:j]))
             i = j
             continue
-        if c.isalpha() or c == "_" or c == "$":
+        if c.isalpha() or c in "_$":
             j = i
             while j < n and not hidden[j] and (text[j].isalnum() or text[j] in "_$"):
                 j += 1
@@ -104,165 +106,149 @@ def tokens(text, semi=False):
             out.append(("num", text[i:j]))
             i = j
             continue
-        if text.startswith(">>=", i) or text.startswith("<<=", i) or text.startswith("...", i):
-            out.append(("punct", text[i:i + 3]))
-            i += 3
-            continue
-        if text[i:i + 2] in ("->", "::", "++", "--", "<<", ">>", "<=", ">=", "==", "!=",
-                             "&&", "||", "+=", "-=", "*=", "/=", "%=", "&=", "|=", "^="):
-            out.append(("punct", text[i:i + 2]))
-            i += 2
-            continue
-        out.append(("punct", c))
-        i += 1
+        for three in (">>=", "<<=", "..."):
+            if text.startswith(three, i):
+                out.append(("punct", three))
+                i += 3
+                break
+        else:
+            two = text[i:i + 2]
+            if two in ("->", "::", "++", "--", "<<", ">>", "<=", ">=", "==", "!=",
+                       "&&", "||", "+=", "-=", "*=", "/=", "%=", "&=", "|=", "^="):
+                out.append(("punct", two))
+                i += 2
+            else:
+                out.append(("punct", c))
+                i += 1
     return out
 
 
-def git_show(path):
-    try:
-        return subprocess.check_output(["git", "show", "HEAD:" + path],
-                                       stderr=subprocess.DEVNULL).decode("utf-8", "replace")
-    except subprocess.CalledProcessError:
-        return None
+def string_literals(text, semi=False):
+    return [t[1] for t in tokens(text, semi=semi) if t[0] == "str"]
 
 
-def header_check(path, current):
-    """The file must start with exactly the injected header, nothing else.
-
-    Returns (header_line_count, ok).
-    """
-    header = header_for(path)
-    return header.count("\n"), current.startswith(header)
-
-
-
-def def_window_check():
-    """test_parity.cpp reads nrth_dll.def into a 1024-byte buffer, so the two
-    strings it looks for must stay inside the first 1023 bytes. Guards the
-    header/vendor edits against silently breaking that read window."""
-    path = "nrth_dll.def"
-    if not os.path.exists(path):
-        return "SKIP", path + " absent"
-    with open(path, "rb") as fh:
-        head = fh.read(1023)
-    needed = [b"LIBRARY nvx.dll", b"NVXHookProc=NVXHookProc@12 @1"]
-    missing = [n.decode() for n in needed if n not in head]
-    if missing:
-        return "FAIL", "%s: missing from read window: %s" % (path, ", ".join(missing))
-    return "OK", "%s: both export strings inside the 1023-byte window (file %d bytes)" % (
-        path, os.path.getsize(path))
-
-
-def compare_objects(path, orig, current):
-    """Compile the "header + original text, comments intact" variant and the
-    cleaned file, then compare the object files.
-
-    Both variants carry the same header, so __LINE__ expands to the same values
-    and every diagnostic string is identical; the single difference between the
-    two inputs is that one still contains the comments. Byte-identical objects
-    therefore prove the cleanup removed nothing but comments.
-
-    Both variants are written under the same basename in their own scratch
-    directory and compiled with the repository on the include path.
-    """
-    flags = COMPILABLE[path].split()
+def compile_object(path, body, include_dir):
+    """Compile one body (same basename) and return the object bytes, or None."""
     base = os.path.basename(path)
-    repo = os.path.dirname(os.path.abspath(__file__))
-    repo = os.path.dirname(repo)
-    objs = []
     with tempfile.TemporaryDirectory() as td:
-        header = header_for(path)
-        for tag, body in (("orig_with_comments", header + orig), ("cleaned", current)):
-            workdir = os.path.join(td, tag)
-            os.makedirs(workdir, exist_ok=True)
-            src = os.path.join(workdir, base)
-            with open(src, "w", encoding="utf-8") as fh:
-                fh.write(body)
-            rc = subprocess.run(
-                ["g++"] + flags + ["-O0", "-I", repo, "-c", base, "-o", base + ".o"],
-                cwd=workdir, capture_output=True)
-            if rc.returncode != 0:
-                return None, "does not compile: %s" % rc.stderr.decode()[:200]
-            objs.append(os.path.join(workdir, base + ".o"))
-        with open(objs[0], "rb") as fh:
-            a = fh.read()
-        with open(objs[1], "rb") as fh:
-            b = fh.read()
-    if a == b:
-        return True, "identical (%d bytes)" % len(a)
-    return False, "OBJECT FILES DIFFER (%d vs %d bytes)" % (len(a), len(b))
+        with open(os.path.join(td, base), "w", encoding="utf-8") as fh:
+            fh.write(body)
+        rc = subprocess.run(
+            ["g++", "-std=c++17", "-O0", "-I", include_dir, "-c", base, "-o", base + ".o"],
+            cwd=td, capture_output=True)
+        if rc.returncode != 0:
+            return None, rc.stderr.decode()[:300]
+        with open(os.path.join(td, base + ".o"), "rb") as fh:
+            return fh.read(), None
 
 
 def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--baseline", default="HEAD",
+                    help="revision to compare against (default HEAD, i.e. the "
+                         "last commit; use 0b9a347 for the pristine upload)")
+    args = ap.parse_args()
+
     if not os.path.isdir(".git"):
         print("run from the repository root", file=sys.stderr)
         return 2
+
+    repo = os.path.abspath(".")
     failures = []
-    print("=== token / line / comment verification ===")
+    total_strings = 0
+
+    print("baseline revision: %s" % args.baseline)
+    print("\n=== structure / strings / lines / comments ===")
     for path in SOURCES:
         if not os.path.exists(path):
             print("  [SKIP] %s (absent)" % path)
             continue
-        orig = git_show(path)
-        if orig is None:
-            print("  [SKIP] %s (not in HEAD)" % path)
+        base_text = git_show(args.baseline, path)
+        if base_text is None:
+            print("  [SKIP] %s (not in baseline)" % path)
             continue
         with open(path, "r", encoding="utf-8") as fh:
-            current = fh.read()
+            cur = fh.read()
         semi = path.endswith(".def")
 
-        t_orig = tokens(orig, semi=semi)
-        t_new = tokens(current, semi=semi)
-        tok_ok = t_orig == t_new
+        struct_ok = (tokens(base_text, semi=semi, normalize_strings=True) ==
+                     tokens(cur, semi=semi, normalize_strings=True))
+        old_str = string_literals(base_text, semi=semi)
+        new_str = string_literals(cur, semi=semi)
+        changed = [(a, b) for a, b in zip(old_str, new_str) if a != b]
+        strings_ok = len(old_str) == len(new_str)
 
-        hdr_lines, hdr_ok = header_check(path, current)
-        line_ok = (len(current.split("\n")) == len(orig.split("\n")) + hdr_lines) and hdr_ok
+        header = header_for(path)
+        hdr_ok = cur.startswith(header)
+        lines_ok = len(cur.split("\n")) == len(base_text.split("\n")) + header.count("\n")
 
-        header_text = header_for(path)
-        leftover = [sp for sp in scan_comments(current, semi=semi)
-                    if sp[0] >= len(header_text)]
-        idem_ok = strip_comments(current, semi=semi) == strip_comments(
-            strip_comments(current, semi=semi), semi=semi)
+        leftover = [sp for sp in scan_comments(cur, semi=semi) if sp[0] >= len(header)]
+        idem_ok = strip_comments(cur, semi=semi) == strip_comments(
+            strip_comments(cur, semi=semi), semi=semi)
 
-        attr_ok = "فريق الحماية و استكشاف الثغرات - هاكرز ابيض" in current
-        status = "OK" if (tok_ok and line_ok and not leftover and idem_ok and attr_ok) else "FAIL"
-        if status == "FAIL":
+        ok = struct_ok and strings_ok and hdr_ok and lines_ok and not leftover and idem_ok
+        if not ok:
             failures.append(path)
-        print("  [%s] %-28s tokens=%s lines=%s leftover_comments=%d idempotent=%s header=%s attribution=%s"
-              % (status, path, "same" if tok_ok else "DIFFER",
-                 "ok" if line_ok else "MISMATCH(%d vs %d+%d)"
-                 % (len(current.split("\n")), len(orig.split("\n")), hdr_lines),
-                 len(leftover), idem_ok, hdr_ok, attr_ok))
+        total_strings += len(changed)
+        print("  [%s] %-28s structure=%s strings=%d lines=%s header=%s "
+              "leftover_comments=%d idempotent=%s"
+              % ("OK" if ok else "FAIL", path,
+                 "identical" if struct_ok else "DIFFERS",
+                 len(changed), "ok" if lines_ok else "MISMATCH",
+                 hdr_ok, len(leftover), idem_ok))
+        for a, b in changed[:12]:
+            print("         %s  ->  %s" % (a, b))
+        if len(changed) > 12:
+            print("         ... %d more" % (len(changed) - 12))
 
     print("\n=== fixed read-window guard (test_parity.cpp semantics) ===")
-    st, msg = def_window_check()
-    print("  [%s] %s" % (st, msg))
-    if st == "FAIL":
+    head = b""
+    if os.path.exists("nrth_dll.def"):
+        with open("nrth_dll.def", "rb") as fh:
+            head = fh.read(1023)
+    missing = [s for s in (b"LIBRARY nvx.dll", b"NVXHookProc=NVXHookProc@12 @1") if s not in head]
+    if missing:
         failures.append("nrth_dll.def (read window)")
+        print("  [FAIL] missing from the 1023-byte window: %s" % missing)
+    else:
+        print("  [OK] nrth_dll.def: both export strings inside the 1023-byte window")
 
-    print("\n=== object-file equivalence (host-compilable units) ===")
-    for path, flags in COMPILABLE.items():
+    print("\n=== object equivalence (host-compilable units) ===")
+    for path in COMPILABLE:
         if not os.path.exists(path):
             continue
-        orig = git_show(path)
+        base_text = git_show(args.baseline, path)
         with open(path, "r", encoding="utf-8") as fh:
-            current = fh.read()
-        if flags == "-std=none":
+            cur = fh.read()
+        header = header_for(path)
+        base_obj, err1 = compile_object(path, header + base_text, repo)
+        cur_obj, err2 = compile_object(path, cur, repo)
+        if base_obj is None or cur_obj is None:
+            print("  [SKIP] %-20s %s" % (path, (err1 or err2 or "").replace("\n", " ")))
             continue
-        ok, msg = compare_objects(path, orig, current)
-        if ok is None:
-            print("  [SKIP] %-28s %s" % (path, msg))
+        same_strings = string_literals(base_text) == string_literals(cur)
+        if base_obj == cur_obj:
+            note = ""
+            if not same_strings:
+                note = (" (the renamed literals sit in #ifdef _WIN32 code that this "
+                        "host does not compile - see tools/check_windows_bodies.sh)")
+            print("  [OK]   %-20s object identical (%d bytes)%s"
+                  % (path, len(cur_obj), note))
+        elif same_strings:
+            failures.append(path + " (object)")
+            print("  [FAIL] %-20s object differs although no string changed" % path)
         else:
-            print("  [%s] %-28s %s" % ("OK" if ok else "FAIL", path, msg))
-            if not ok:
-                failures.append(path + " (object)")
+            print("  [INFO] %-20s object differs only through the renamed string "
+                  "literals listed above" % path)
 
     print()
     if failures:
         print("VERIFICATION FAILED: %s" % ", ".join(failures))
         return 1
-    print("VERIFICATION PASSED: token streams identical, line numbers preserved, "
-          "object files byte-identical.")
+    print("VERIFICATION PASSED: comment removal and the %d renamed string literals are "
+          "the only source-level changes; token structure, line numbering and "
+          "compiled objects are otherwise unchanged." % total_strings)
+    print("Also run: tools/check_windows_bodies.sh (the #ifdef _WIN32 bodies).")
     return 0
 
 

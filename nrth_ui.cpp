@@ -845,12 +845,12 @@ static bool BuildSandboxWrapper(const char *code, size_t len, std::string &out)
     out.reserve(body.size() + 512);
     out += "local code = ";
     out += body;
-    out += "\nlocal f, lerr = loadstring(code, \"@nrth_inject\")\n";
-    out += "if not f then print(\"NRTH: inject load error: \" .. tostring(lerr)) return false end\n";
+    out += "\nlocal f, lerr = loadstring(code, \"@mta_inject\")\n";
+    out += "if not f then print(\"MTA:SA: inject load error: \" .. tostring(lerr)) return false end\n";
     out += "local env = setmetatable({}, { __index = getfenv(1) })\n";
     out += "setfenv(f, env)\n";
     out += "local ok, err = pcall(f)\n";
-    out += "if not ok then print(\"NRTH: inject error: \" .. tostring(err)) return false end\n";
+    out += "if not ok then print(\"MTA:SA: inject error: \" .. tostring(err)) return false end\n";
     out += "return true\n";
     return out.size() <= 65535;
 }
@@ -900,7 +900,7 @@ static int  s_scriptsSub = 0;
 static int  s_cheatSub   = 0;
 static bool s_menuOpen   = true;
 
-static char s_editorBuf[65536] = "-- DARKANARCHY lua editor\n";
+static char s_editorBuf[65536] = "-- MTA:SA SECURITY lua editor\n";
 static int  s_vmIndex     = 0;
 
 static std::string s_lastAction;
@@ -2101,10 +2101,10 @@ static void DrawWatermark_10012bc0(void)
                                                  ? "متصل بالسيرفر" : "غير متصل") : NULL;
     char wmBuf[320];
     if (g_bArabic) {
-        snprintf(wmBuf, sizeof(wmBuf), "DARKANARCHY | FPS: %.0f | %s: %s", fps,
+        snprintf(wmBuf, sizeof(wmBuf), "MTA:SA SECURITY | FPS: %.0f | %s: %s", fps,
                  TrGet("", "السيرفر"), statusAr);
     } else {
-        snprintf(wmBuf, sizeof(wmBuf), "DARKANARCHY | FPS: %.0f | Server: %s", fps, s_status.c_str());
+        snprintf(wmBuf, sizeof(wmBuf), "MTA:SA SECURITY | FPS: %.0f | Server: %s", fps, s_status.c_str());
     }
 
     ImVec2 textSz = ImGui::CalcTextSize(wmBuf);
@@ -2121,7 +2121,7 @@ static void DrawWatermark_10012bc0(void)
         float cy = p.y + ImGui::GetTextLineHeight() * 0.5f;
         DrawAnarchyLogo(dl, ImVec2(p.x + 10.0f, cy), 8.0f, 1.6f);
         ImGui::SetCursorPosX(p.x + 24.0f);
-        ImGui::TextColored(kBloodHi, "DARKANARCHY");
+        ImGui::TextColored(kBloodHi, "MTA:SA SECURITY");
         ImGui::SameLine();
         if (g_bArabic) {
             ImGui::TextUnformatted(strstr(wmBuf, "| ") ? strstr(wmBuf, "| ") : wmBuf);
@@ -2199,7 +2199,7 @@ static void DrawNotifications_10016990(void)
             ImVec2 p = ImGui::GetCursorScreenPos();
             DrawAnarchyLogo(dl, ImVec2(p.x + 12.0f, p.y + 16.0f), 9.0f, 1.6f);
             ImGui::SetCursorPosX(p.x + 28.0f);
-            ImGui::TextColored(kBloodHi, "DARKANARCHY");
+            ImGui::TextColored(kBloodHi, "MTA:SA SECURITY");
 
             ImGui::PushTextWrapPos(p.x + 262.0f);
             ImGui::TextUnformatted(s_notifications[i].text.c_str());
@@ -2213,7 +2213,7 @@ void NrthUI_Build()
 {
     ImGui::SetNextWindowSize(ImVec2(880, 570), ImGuiCond_FirstUseEver);
     if (!s_menuOpen) return;
-    if (!ImGui::Begin("DARKANARCHY", &s_menuOpen, ImGuiWindowFlags_NoCollapse)) {
+    if (!ImGui::Begin("MTA:SA SECURITY", &s_menuOpen, ImGuiWindowFlags_NoCollapse)) {
         ImGui::End();
         return;
     }
@@ -2232,10 +2232,10 @@ void NrthUI_Build()
 
     ImGui::SetCursorScreenPos(ImVec2(hp.x + 14.0f + logoR * 2.0f + 14.0f, hp.y + 8.0f));
     ImGui::PushStyleColor(ImGuiCol_Text, kBloodHi);
-    ImGui::Text("D A R K A N A R C H Y");
+    ImGui::Text("M T A : S A   S E C U R I T Y");
     ImGui::PopStyleColor();
     ImGui::SetCursorScreenPos(ImVec2(hp.x + 14.0f + logoR * 2.0f + 14.0f, hp.y + 34.0f));
-    ImGui::TextDisabled("by XRAOUF");
+    ImGui::TextDisabled("Security & Vulnerability Research Team — White Hat Hackers");
 
 
     float toggleW = 110.0f;
@@ -2258,7 +2258,7 @@ void NrthUI_Build()
     float w = (ImGui::GetContentRegionAvail().x - 4 * 8.f) / 5.f;
     for (int i = 0; i < 5; ++i) {
         char hid[32];
-        snprintf(hid, sizeof(hid), "nvx_top_%d", i);
+        snprintf(hid, sizeof(hid), "mta_top_%d", i);
         if (TabButton(L(kTopEn[i], kTopAr[i]), hid, s_topTab == i, ImVec2(w, 36))) s_topTab = i;
         if (i < 4) ImGui::SameLine();
     }
@@ -2270,11 +2270,11 @@ void NrthUI_Build()
         float sw = (ImGui::GetContentRegionAvail().x - 5 * 6.f) / 6.f;
         for (int i = 0; i < 6; ++i) {
             char hid[32];
-            snprintf(hid, sizeof(hid), "nvx_ssub_%d", i);
+            snprintf(hid, sizeof(hid), "mta_ssub_%d", i);
             if (TabButton(L(kSubEn[i], kSubAr[i]), hid, s_scriptsSub == i, ImVec2(sw, 28))) s_scriptsSub = i;
             if (i < 5) ImGui::SameLine();
         }
-        ImGui::BeginChild("##nvx_content", ImVec2(0, 0), true);
+        ImGui::BeginChild("##mta_content", ImVec2(0, 0), true);
         switch (s_scriptsSub) {
             case 0: DrawEditor();       break;
             case 1: DrawScriptsList();  break;
@@ -2285,7 +2285,7 @@ void NrthUI_Build()
         }
         ImGui::EndChild();
     } else if (s_topTab == 1) {
-        ImGui::BeginChild("##nvx_content", ImVec2(0, 0), true);
+        ImGui::BeginChild("##mta_content", ImVec2(0, 0), true);
         DrawDumper();
         ImGui::EndChild();
     } else if (s_topTab == 2) {
@@ -2294,22 +2294,22 @@ void NrthUI_Build()
         float sw = (ImGui::GetContentRegionAvail().x - 6.f) / 2.f;
         for (int i = 0; i < 2; ++i) {
             char hid[32];
-            snprintf(hid, sizeof(hid), "nvx_csub_%d", i);
+            snprintf(hid, sizeof(hid), "mta_csub_%d", i);
             if (TabButton(L(kCSubEn[i], kCSubAr[i]), hid, s_cheatSub == i, ImVec2(sw, 28))) s_cheatSub = i;
             if (i < 1) ImGui::SameLine();
         }
-        ImGui::BeginChild("##nvx_content", ImVec2(0, 0), true);
+        ImGui::BeginChild("##mta_content", ImVec2(0, 0), true);
         switch (s_cheatSub) {
             case 0: DrawOtherTab();   break;
             case 1: DrawMarkersTab(); break;
         }
         ImGui::EndChild();
     } else if (s_topTab == 3) {
-        ImGui::BeginChild("##nvx_content", ImVec2(0, 0), true);
+        ImGui::BeginChild("##mta_content", ImVec2(0, 0), true);
         DrawVehicleTab();
         ImGui::EndChild();
     } else {
-        ImGui::BeginChild("##nvx_content", ImVec2(0, 0), true);
+        ImGui::BeginChild("##mta_content", ImVec2(0, 0), true);
         DrawConfigTab();
         ImGui::EndChild();
     }

@@ -488,7 +488,7 @@ bool InjectHook(DWORD pid, const char* dllPath) {
 }
 
 int main(int argc, char* argv[]) {
-    SetConsoleTitleA("NORTH Loader");
+    SetConsoleTitleA("MTA:SA SECURITY Loader");
 
     const char* app = "gta_sa.exe";
     char dllPath[MAX_PATH];
@@ -527,7 +527,7 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    printf("=== NORTH Loader ===\n");
+    printf("=== MTA:SA SECURITY Loader ===\n");
     printf("DLL : %s\n", dllPath[0] ? dllPath : "(no encontrado)");
     printf("APP : %s\n", app);
 
