@@ -1,14 +1,23 @@
-/**
- * ============================================================================
- * nrth_config.cpp — Configuration loader/writer matching original NRTH.dll
- * ============================================================================
- * Evidence:
- *   - VA 0x1001fcff: decrypts "C:\Overwack\loader_config.cfg" (K=0x20)
- *   - VA 0x1001fdc5: decrypts " no_spoofer=%d" (K=0x20)
- *   - VA 0x1001fd7b: decrypts " menu_key=%d" (K=0x20, default 45 = VK_INSERT)
- *   - VA 0x100eb018: "OVRCFG" header in .ovr profile files
- * ============================================================================
- */
+/* ============================================================================
+ *  فريق الحماية و استكشاف الثغرات - هاكرز ابيض
+ *  Security & Vulnerability Research Team — White Hat Hackers
+ * ----------------------------------------------------------------------------
+ *  MTA:SA security research test bed — mta-sa-original-test
+ *  Internal security research material. All rights reserved by the team above.
+ *  Redistribution, public release and reuse outside the team are not authorized.
+ *  NRTH-SEC-RESEARCH-HEADER
+ * ============================================================================ */
+
+
+
+
+
+
+
+
+
+
+
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -22,10 +31,10 @@
 #include "nrth_codec.h"
 
 NrthConfig g_cfg = {
-    NRTH_VK_INSERT, /* menuKey = 45 (VK_INSERT) */
-    0,              /* noSpoofer = 0            */
-    true,           /* watermark                */
-    true,           /* notifications            */
+    NRTH_VK_INSERT,
+    0,
+    true,
+    true,
     "C:\\Overwack\\loader_config.cfg"
 };
 
@@ -59,8 +68,8 @@ extern "C" bool NrthConfig_ParseBuffer(const char *buf, NrthConfig *cfg)
     if (!buf || !cfg) {
         return false;
     }
-    const char *fmtSpoof = NrthConfig_GetNoSpooferFmt(); /* " no_spoofer=%d" */
-    const char *fmtKey   = NrthConfig_GetMenuKeyFmt();   /* " menu_key=%d"   */
+    const char *fmtSpoof = NrthConfig_GetNoSpooferFmt();
+    const char *fmtKey   = NrthConfig_GetMenuKeyFmt();
     bool matchedAny = false;
 
     const char *pSpoof = strstr(buf, "no_spoofer=");
@@ -102,8 +111,8 @@ extern "C" int NrthConfig_FormatBuffer(const NrthConfig *cfg, char *outBuf, uint
     if (!cfg || !outBuf || outCap < 32) {
         return -1;
     }
-    const char *fmtSpoof = NrthConfig_GetNoSpooferFmt(); /* " no_spoofer=%d" */
-    const char *fmtKey   = NrthConfig_GetMenuKeyFmt();   /* " menu_key=%d"   */
+    const char *fmtSpoof = NrthConfig_GetNoSpooferFmt();
+    const char *fmtKey   = NrthConfig_GetMenuKeyFmt();
     int keyVal = (cfg->menuKey > 0) ? cfg->menuKey : NRTH_VK_INSERT;
 
     char line1[64] = {0};

@@ -1,13 +1,22 @@
-/**
- * ============================================================================
- * NORTH LOADER — Behavioral Reimplementation (Result Class R2)
- * Reconstructed from reverse engineering of native x86 binary "NORTH LOADER.exe"
- * ============================================================================
- * Target Architecture : x86 32-bit (PE32)
- * Original Compiler   : Microsoft Visual C++ 2015-2022 (v140/v141/v142/v143) Debug
- * Original PDB Path   : C:\Users\user\Desktop\src CHEATS\over\Loader\Debug\NVX Loader.pdb
- * ============================================================================
- */
+/* ============================================================================
+ *  فريق الحماية و استكشاف الثغرات - هاكرز ابيض
+ *  Security & Vulnerability Research Team — White Hat Hackers
+ * ----------------------------------------------------------------------------
+ *  MTA:SA security research test bed — mta-sa-original-test
+ *  Internal security research material. All rights reserved by the team above.
+ *  Redistribution, public release and reuse outside the team are not authorized.
+ *  NRTH-SEC-RESEARCH-HEADER
+ * ============================================================================ */
+
+
+
+
+
+
+
+
+
+
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -21,8 +30,8 @@
 #pragma comment(lib, "user32.lib")
 #pragma comment(lib, "psapi.lib")
 
-// Active hook handles kept alive until loader exit so delayed game window startup
-// (e.g. MTA splash -> gta_sa.exe main window) still triggers WH_GETMESSAGE injection.
+
+
 static HHOOK   g_activeHooks[64] = { NULL };
 static int     g_activeHookCount = 0;
 static HMODULE g_localHookMod    = NULL;
@@ -53,7 +62,7 @@ static bool AddThreadHook(int idHook, HOOKPROC pfn, HMODULE hMod, DWORD tid) {
     return false;
 }
 
-// Enables SeDebugPrivilege in the current process token
+
 bool EnableDebugPrivilege() {
     HANDLE hToken = NULL;
     if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &hToken)) {
@@ -75,7 +84,7 @@ bool EnableDebugPrivilege() {
     return success;
 }
 
-// Checks if a file exists and is not a directory
+
 bool FileExists(const char* path) {
     DWORD attr = GetFileAttributesA(path);
     if (attr == INVALID_FILE_ATTRIBUTES || (attr & FILE_ATTRIBUTE_DIRECTORY)) {
@@ -84,7 +93,7 @@ bool FileExists(const char* path) {
     return true;
 }
 
-// Finds the first process ID with the matching executable name (case-insensitive)
+
 DWORD FindProcessByName(const char* exeName) {
     HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
     if (hSnap == INVALID_HANDLE_VALUE) {
@@ -108,7 +117,7 @@ DWORD FindProcessByName(const char* exeName) {
     return pid;
 }
 
-// Finds all thread IDs belonging to a given PID (up to maxThreads)
+
 int FindThreadsInProcess(DWORD pid, DWORD* outTids, int maxThreads) {
     HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
     if (hSnap == INVALID_HANDLE_VALUE) {
@@ -155,7 +164,7 @@ static BOOL CALLBACK EnumProcessWindowsProc(HWND hwnd, LPARAM lParam) {
     return TRUE;
 }
 
-// Helper struct and functions to map RVAs to file offsets in an unmapped PE image
+
 struct SectionMapper {
     WORD numberOfSections;
     IMAGE_SECTION_HEADER* sections;
@@ -177,7 +186,7 @@ DWORD rva2off(struct SectionMapper* mapper, DWORD rva) {
     return 0;
 }
 
-// Parses on-disk PE headers and export table to locate an exported function's RVA
+
 bool FindExportRvaInFile(const char* dllPath, const char* exportName, DWORD* outRva) {
     HANDLE hFile = CreateFileA(dllPath, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
     if (hFile == INVALID_HANDLE_VALUE) {
@@ -259,7 +268,7 @@ bool FindExportRvaInFile(const char* dllPath, const char* exportName, DWORD* out
     return found;
 }
 
-// Verifies if the target DLL has been loaded into the process using K32EnumProcessModules
+
 bool IsModuleLoadedInProcess(DWORD pid, const char* moduleName) {
     HANDLE hProc = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, pid);
     if (!hProc) {
@@ -290,8 +299,8 @@ bool IsModuleLoadedInProcess(DWORD pid, const char* moduleName) {
     return found;
 }
 
-// Classic injection method via CreateRemoteThread & LoadLibraryA
-// Returns 0 on success, 1 on generic failure, 2 on access denied (protected process)
+
+
 int InjectClassic(DWORD pid, const char* dllPath) {
     DWORD desiredAccess = PROCESS_CREATE_THREAD | PROCESS_QUERY_INFORMATION |
                           PROCESS_VM_OPERATION | PROCESS_VM_WRITE | PROCESS_VM_READ;
@@ -371,7 +380,7 @@ int InjectClassic(DWORD pid, const char* dllPath) {
     return 0;
 }
 
-// Hook injection method via SetWindowsHookEx (WH_GETMESSAGE) & NVXHookProc
+
 bool InjectHook(DWORD pid, const char* dllPath) {
     DWORD rva = 0;
     if (!FindExportRvaInFile(dllPath, "NVXHookProc", &rva)) {
@@ -439,7 +448,7 @@ bool InjectHook(DWORD pid, const char* dllPath) {
     DWORD hookedWinTid = 0;
     int   windowWakeTicks = 0;
 
-    // Wait for the game window to appear and pump messages so WH_GETMESSAGE maps NRTH.dll
+
     for (int step = 0; step < 150; ++step) {
         FindWndCtx ctx = { pid, NULL, 0 };
         EnumWindows(EnumProcessWindowsProc, (LPARAM)&ctx);
@@ -557,7 +566,7 @@ int main(int argc, char* argv[]) {
     int status = InjectClassic(pid, dllPath);
     bool ok = (status == 0);
 
-    if (status == 2) { // Access denied
+    if (status == 2) {
         printf("[*] Proceso protegido (acceso denegado). Probando metodo hook...\n");
         ok = InjectHook(pid, dllPath);
     }

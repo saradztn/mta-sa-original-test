@@ -1,5 +1,14 @@
-// Auto-extracted GTA:SA vehicle name table from NRTH.dll .rdata (offsets 0x0e8554-0x0e8df4)
-// Evidence: used by the "Vehicles List" combo (##vehicles_combo). Generated from analysis/strings_catalog.txt.
+/* ============================================================================
+ *  فريق الحماية و استكشاف الثغرات - هاكرز ابيض
+ *  Security & Vulnerability Research Team — White Hat Hackers
+ * ----------------------------------------------------------------------------
+ *  MTA:SA security research test bed — mta-sa-original-test
+ *  Internal security research material. All rights reserved by the team above.
+ *  Redistribution, public release and reuse outside the team are not authorized.
+ *  NRTH-SEC-RESEARCH-HEADER
+ * ============================================================================ */
+
+
 static const char *kVehicleNames[] = {
     "Landstalker",
     "Buffalo",

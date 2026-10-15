@@ -1,31 +1,40 @@
-/**
- * ============================================================================
- * NRTH.dll — Behavioral & Structural Reconstruction (Result Class R2)
- * Reconstructed from reverse engineering of native x86 library "NRTH.dll"
- * (SHA-256 947b81be2d0f84cc5f51742ef8e9dbf6183597ed98afaf1377bfc4352e007861)
- * ============================================================================
- * PURPOSE: authorized MTA:SA blue-team private-server validation & parity
- *          verification ONLY. Not for public-server use.
- *
- * Evidence map (original VAs / RVAs):
- *   NVXHookProc               VA 0x1000b9e0 (RVA 0x0b9e0)  export ordinal 1 (nvx.dll)
- *   DllMain                   VA 0x1000ba00 (RVA 0x0ba00)  pin + MainInitThread
- *   MainInitThread            VA 0x1000a850 (RVA 0x0a850)  config/ADS/probes + LdrLoadDll + D3D9 hook
- *   Hooked_LdrLoadDll         VA 0x1000a640 (RVA 0x0a640)  trigger on client.dll / netc.dll
- *   ResolvePattern_10002960   VA 0x10002960 (RVA 0x02960)  wildcard byte-pattern scanner
- *   ArmClient_10005b80        VA 0x10005b80 (RVA 0x05b80)  11 scans + 11 MH_CreateHook calls
- *     Handlers: 0x10002ff0, 0x100047b0, 0x100050a0, 0x10005290, 0x100052b0,
- *               0x10005620, 0x100056c0, 0x100056f0, 0x10005ab0, 0x10005b30, 0x10005b50
- *   ResolveClientOffsets      VA 0x1000c400 (RVA 0x0c400)  20 pattern scans, 0 hooks
- *   PatchByte_10011870        VA 0x10011870 (RVA 0x11870)  VirtualProtect(ptr,1,0x40) + list 0x101493e4
- *   ArmNetc_10020640          VA 0x10020640 (RVA 0x20640)  netc.dll scans + hooks + 0xC3 patches
- *   GetD3D9DeviceVTable       VA 0x10012980 (RVA 0x12980)  pattern scan C7 06 ? ? ? ? 89 86 ? ? ? ? 89 86
- *   InstallD3D9Hooks          VA 0x10016300 (RVA 0x16300)  Present idx 17 / Reset idx 16 + Cursor hooks
- *   Hooked_Present            VA 0x10014d50 (RVA 0x14d50)  Dear ImGui 1.92.9 WIP overlay
- *   Hooked_Reset              VA 0x1001a3c0 (RVA 0x1a3c0)  device-loss handling
- *   Hooked_WndProc            VA 0x10015ed0 (RVA 0x15ed0)  SetWindowLongW subclass + VK_INSERT toggle
- * ============================================================================
- */
+/* ============================================================================
+ *  فريق الحماية و استكشاف الثغرات - هاكرز ابيض
+ *  Security & Vulnerability Research Team — White Hat Hackers
+ * ----------------------------------------------------------------------------
+ *  MTA:SA security research test bed — mta-sa-original-test
+ *  Internal security research material. All rights reserved by the team above.
+ *  Redistribution, public release and reuse outside the team are not authorized.
+ *  NRTH-SEC-RESEARCH-HEADER
+ * ============================================================================ */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -55,11 +64,11 @@
 #include "nrth_hook.h"
 #include "nrth_ui.h"
 
-/* ===========================================================================
- * Exported hook procedure (export ordinal 1, name "NVXHookProc" in nvx.dll).
- * Placed at exact RVA 0x0000B9E0 (VA 0x1000B9E0) in the PE32 build when
- * nrth_hook.o is linked first after dllcrt2.o (0x10001010 + 0xA9D0 = 0x1000B9E0).
- * =========================================================================== */
+
+
+
+
+
 #if defined(_WIN32) && !defined(NRTH_HEADLESS_TEST)
 __asm__(
     ".section .text\n"
@@ -83,9 +92,9 @@ LRESULT CALLBACK NVXHookProc(int nCode, WPARAM wParam, LPARAM lParam)
 #endif
 }
 
-/* ===========================================================================
- * Pattern compiler & scanner — matches original resolver VA 0x10002960
- * =========================================================================== */
+
+
+
 static int nrth_hex_digit(int c)
 {
     if (c >= '0' && c <= '9') return c - '0';
@@ -163,9 +172,9 @@ extern "C" const uint8_t *ResolvePattern_10002960(const uint8_t *base, uint32_t 
     return NULL;
 }
 
-/* ===========================================================================
- * Decrypted pattern helpers (single-use gate L = F - 1 over kNrthEncryptedSigs)
- * =========================================================================== */
+
+
+
 static char s_sigPlainBuf[20][160] = {{0}};
 static bool s_sigGate[20]          = {false};
 
@@ -179,9 +188,9 @@ static const char *DecryptCatalogSig(uint32_t sigId1Based)
     return NrthDecryptOnce(e.cipher, e.fieldSize, e.key, s_sigPlainBuf[idx], &s_sigGate[idx]);
 }
 
-/* ===========================================================================
- * Global state: Lua VM bridge (0x1013bf04), Sync structs, Report channels
- * =========================================================================== */
+
+
+
 static NrthLuaVmBridge        g_LuaVmBridge       = {};
 static SPlayerHealthSync      g_PlayerHealthSync  = {
     100.0f, 100.0f, 0, 0, 0, 0, 1.0f, 0.5f, 0, 0,
@@ -235,9 +244,9 @@ extern "C" bool Nrth_IsPointerReadable_VirtualQuery(const void *ptr)
 #endif
 }
 
-/* ===========================================================================
- * Single-byte patch writer VA 0x10011870 & patch list VA 0x101493e4
- * =========================================================================== */
+
+
+
 static NrthPatchRecord g_PatchList_101493e4[NRTH_NETC_PATCH_COUNT] = {
     { 0x100206e5u, 0x100206f0u, 0x10023670u, NULL, 0, 0xC3u, 0, 0 },
     { 0x1002089fu, 0x100208aau, 0x10023530u, NULL, 0, 0xC3u, 0, 0 },
@@ -276,7 +285,7 @@ extern "C" bool PatchByte_10011870(void *targetAddr, uint8_t opcodeByte, uint32_
     uint8_t *pByte = (uint8_t *)targetAddr;
 #ifdef _WIN32
     DWORD oldProt = 0;
-    if (!VirtualProtect(targetAddr, 1, PAGE_EXECUTE_READWRITE /* 0x40 */, &oldProt)) {
+    if (!VirtualProtect(targetAddr, 1, PAGE_EXECUTE_READWRITE , &oldProt)) {
         return false;
     }
     uint8_t prev = *pByte;
@@ -296,26 +305,26 @@ extern "C" bool PatchByte_10011870(void *targetAddr, uint8_t opcodeByte, uint32_
     return true;
 }
 
-/* ===========================================================================
- * 11 client.dll hook handlers (installed by ArmClient_10005b80 at 0x10005b80)
- * Decoded from NRTH.dll (0x10002ff0..0x10005b50) with exact calling conventions:
- *   #00 0x10002ff0: __thiscall (ret 0x18) — captures 6 client interface pointers
- *   #01 0x100047b0: __cdecl    (ret)      — luaL_loadbuffer / script loader hook
- *   #02 0x100050a0: __cdecl    (ret)      — TriggerServerEvent / event filter
- *   #03 0x100056f0: __cdecl    (ret)      — Lua debug / state hook
- *   #04 0x10005290: __thiscall (ret 0x1c) — captures CResourceManager thisPtr
- *   #05 0x100052b0: __thiscall (ret 0x1c) — CResource creation tracker
- *   #06 0x10005620: __thiscall (ret 0x04) — CResource removal tracker
- *   #07 0x100056c0: __thiscall (ret 0x20) — Anti-ScreenShot / screen capture guard
- *   #08 0x10005ab0: __thiscall (ret 0x18) — World/projectile Vec3 override
- *   #09 0x10005b30: __thiscall (ret 0x08) — Client pass-through hook
- *   #10 0x10005b50: __cdecl    (ret)      — Anti-ScreenShot secondary guard
- * =========================================================================== */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 static void *g_pClientGame_10148ee8     = NULL;
 static void *g_ClientIfaces_10148ed4[6] = { NULL };
 static void *g_ResourceMgr_1013c948     = NULL;
 
-/* 14 Lua C API pointers resolved by ResolveClientOffsets_1000c390 (VA 0x1013c974..0x1013c9a8) */
+
 #ifndef NRTH_CDECL
 #ifdef _WIN32
 #define NRTH_CDECL __cdecl
@@ -339,20 +348,20 @@ typedef void        (NRTH_CDECL *PFN_lua_createtable_t)(void *L, int narr, int n
 typedef void        (NRTH_CDECL *PFN_lua_setfield_t)(void *L, int idx, const char *k);
 typedef void        (NRTH_CDECL *PFN_lua_rawgeti_t)(void *L, int idx, int n);
 
-static PFN_lua_pcall_t        g_lua_pcall_1013c974        = NULL; /* Scan #10 (Sig #12) */
-static PFN_lua_objlen_t       g_lua_objlen_1013c978       = NULL; /* Scan #16 (Sig #7)  */
-static PFN_lua_rawseti_t      g_lua_rawseti_1013c97c      = NULL; /* Scan #15 (Extra #6)*/
-static PFN_lua_tolstring_t    g_lua_tolstring_1013c980    = NULL; /* Scan #03 (Extra #0)*/
-static PFN_lua_pushcclosure_t g_lua_pushcclosure_1013c984 = NULL; /* Scan #00 (Sig #4)  */
-static PFN_lua_type_t         g_lua_type_1013c988         = NULL; /* Scan #07 (Sig #8)  */
-static PFN_lua_tonumber_t     g_lua_tonumber_1013c98c     = NULL; /* Scan #05 (Sig #1)  */
-static PFN_lua_gettop_t       g_lua_gettop_1013c990       = NULL; /* Scan #02 (Sig #14) */
-static PFN_lua_pushnumber_t   g_lua_pushnumber_1013c994   = NULL; /* Scan #19 (Extra #7)*/
-static PFN_lua_pushstring_t   g_lua_pushstring_1013c998   = NULL; /* Scan #18 (Sig #18) */
-static PFN_lua_settop_t       g_lua_settop_1013c99c       = NULL; /* Scan #13 (Sig #17) */
-static PFN_lua_createtable_t  g_lua_createtable_1013c9a0  = NULL; /* Scan #04 (Extra #1)*/
-static PFN_lua_setfield_t     g_lua_setfield_1013c9a4     = NULL; /* Scan #01 (Sig #11) */
-static PFN_lua_rawgeti_t      g_lua_rawgeti_1013c9a8      = NULL; /* Scan #14 (Extra #5)*/
+static PFN_lua_pcall_t        g_lua_pcall_1013c974        = NULL;
+static PFN_lua_objlen_t       g_lua_objlen_1013c978       = NULL;
+static PFN_lua_rawseti_t      g_lua_rawseti_1013c97c      = NULL;
+static PFN_lua_tolstring_t    g_lua_tolstring_1013c980    = NULL;
+static PFN_lua_pushcclosure_t g_lua_pushcclosure_1013c984 = NULL;
+static PFN_lua_type_t         g_lua_type_1013c988         = NULL;
+static PFN_lua_tonumber_t     g_lua_tonumber_1013c98c     = NULL;
+static PFN_lua_gettop_t       g_lua_gettop_1013c990       = NULL;
+static PFN_lua_pushnumber_t   g_lua_pushnumber_1013c994   = NULL;
+static PFN_lua_pushstring_t   g_lua_pushstring_1013c998   = NULL;
+static PFN_lua_settop_t       g_lua_settop_1013c99c       = NULL;
+static PFN_lua_createtable_t  g_lua_createtable_1013c9a0  = NULL;
+static PFN_lua_setfield_t     g_lua_setfield_1013c9a4     = NULL;
+static PFN_lua_rawgeti_t      g_lua_rawgeti_1013c9a8      = NULL;
 
 struct NrthActiveResourceSlot {
     char  name[64];
@@ -363,7 +372,7 @@ static uint32_t               s_activeResourceCount  = 0;
 static char                   s_stoppedResources[128][64] = {{0}};
 static uint32_t               s_stoppedResourceCount = 0;
 
-/* Custom Lua `api` closures registered by sub_10010ff0 (0x1000f920..0x100112a0) */
+
 static int NRTH_CDECL LuaApi_StoppedResources_1000f920(void *L)
 {
     if (!L || !g_lua_gettop_1013c990 || !g_lua_type_1013c988 ||
@@ -376,7 +385,7 @@ static int NRTH_CDECL LuaApi_StoppedResources_1000f920(void *L)
     }
     int argIdx = 1;
     int t1 = g_lua_type_1013c988(L, 1);
-    if (t1 == 4) { /* LUA_TSTRING */
+    if (t1 == 4) {
         size_t slen = 0;
         const char *s = g_lua_tolstring_1013c980(L, 1, &slen);
         if (s && slen > 0) {
@@ -396,7 +405,7 @@ static int NRTH_CDECL LuaApi_StoppedResources_1000f920(void *L)
         }
         argIdx = 2;
     }
-    if (g_lua_type_1013c988(L, argIdx) == 5 && g_lua_settop_1013c99c) { /* LUA_TTABLE */
+    if (g_lua_type_1013c988(L, argIdx) == 5 && g_lua_settop_1013c99c) {
         size_t count = g_lua_objlen_1013c978(L, argIdx);
         for (size_t i = 1; i <= count; ++i) {
             g_lua_rawgeti_1013c9a8(L, argIdx, (int)i);
@@ -615,7 +624,7 @@ typedef int  (__cdecl    *PFN_Client_10005b50)(void *);
 
 extern NrthHookSlot g_ClientHooks_10005b80[NRTH_CLIENT_HOOK_COUNT];
 
-/* #00 0x10002ff0: __thiscall with 6 stack args (ret 0x18) */
+
 static void __fastcall Hook_Client_10002ff0(void *thisPtr, void *edxUnused,
                                             void *a1, void *a2, void *a3, void *a4, void *a5, void *a6)
 {
@@ -635,7 +644,7 @@ static void __fastcall Hook_Client_10002ff0(void *thisPtr, void *edxUnused,
     }
 }
 
-/* #01 0x100047b0: __cdecl with 4 stack args (ret) — luaL_loadbuffer hook */
+
 static int __cdecl Hook_Client_100047b0(void *L, const char *buff, size_t sz, const char *name)
 {
     PFN_Client_100047b0 orig = (PFN_Client_100047b0)g_ClientHooks_10005b80[1].origTrampoline;
@@ -652,13 +661,13 @@ static int __cdecl Hook_Client_100047b0(void *L, const char *buff, size_t sz, co
     return 0;
 }
 
-/* #02 0x100050a0: __cdecl with 7 stack args (ret) — TriggerServerEvent hook */
+
 static unsigned char __cdecl Hook_Client_100050a0(void *a1, const char *eventName,
                                                   void *a3, void *a4, void *a5, void *a6, float a7)
 {
     if (eventName && Nrth_IsPointerReadable_VirtualQuery(eventName)) {
         if (NrthUI_ShouldBlockServerEvent(eventName)) {
-            return 0; /* Matches 0x10005220: xor al, al when event is blocked */
+            return 0;
         }
     }
     PFN_Client_100050a0 orig = (PFN_Client_100050a0)g_ClientHooks_10005b80[2].origTrampoline;
@@ -668,7 +677,7 @@ static unsigned char __cdecl Hook_Client_100050a0(void *a1, const char *eventNam
     return 1;
 }
 
-/* #03 0x10005290: __thiscall with 7 stack args (ret 0x1c) */
+
 static void *__fastcall Hook_Client_10005290(void *thisPtr, void *edxUnused,
                                              void *a1, void *a2, void *a3, void *a4, void *a5, void *a6, void *a7)
 {
@@ -683,7 +692,7 @@ static void *__fastcall Hook_Client_10005290(void *thisPtr, void *edxUnused,
     return NULL;
 }
 
-/* #04 0x100052b0: __thiscall with 7 stack args (ret 0x1c) */
+
 static void *__fastcall Hook_Client_100052b0(void *thisPtr, void *edxUnused,
                                              void *a1, const char *resName, void *a3, void *a4, void *a5, void *a6, void *a7)
 {
@@ -710,7 +719,7 @@ static void *__fastcall Hook_Client_100052b0(void *thisPtr, void *edxUnused,
     return resPtr;
 }
 
-/* #05 0x10005620: __thiscall with 1 stack arg (ret 0x4) */
+
 static void __fastcall Hook_Client_10005620(void *thisPtr, void *edxUnused, void *resPtr)
 {
     (void)edxUnused;
@@ -729,7 +738,7 @@ static void __fastcall Hook_Client_10005620(void *thisPtr, void *edxUnused, void
     }
 }
 
-/* #06 0x100056c0: __thiscall with 8 stack args (ret 0x20) — Anti-ScreenShot guard */
+
 static int __fastcall Hook_Client_100056c0(void *thisPtr, void *edxUnused,
                                            void *a1, void *a2, void *a3, void *a4, void *a5, void *a6, void *a7, void *a8)
 {
@@ -746,13 +755,13 @@ static int __fastcall Hook_Client_100056c0(void *thisPtr, void *edxUnused,
     return 0;
 }
 
-/* #07 0x100056f0: __cdecl with 3 stack args (ret) — TriggerClientEvent / CMapEventManager::Call */
+
 static unsigned char __cdecl Hook_Client_100056f0(void *a1, void *a2, void *a3)
 {
     const char *eventName = (const char *)a1;
     if (eventName && Nrth_IsPointerReadable_VirtualQuery(eventName)) {
         if (NrthUI_ShouldBlockServerEvent(eventName)) {
-            return 0; /* Matches 0x10005862: xor al, al */
+            return 0;
         }
     }
     PFN_Client_100056f0 orig = (PFN_Client_100056f0)g_ClientHooks_10005b80[3].origTrampoline;
@@ -762,7 +771,7 @@ static unsigned char __cdecl Hook_Client_100056f0(void *a1, void *a2, void *a3)
     return 1;
 }
 
-/* #08 0x10005ab0: __thiscall with 6 stack args (ret 0x18) — Crasher position override */
+
 static void __fastcall Hook_Client_10005ab0(void *thisPtr, void *edxUnused,
                                             void *a1, float *posVec3, void *a3, float a4, void *a5, void *a6)
 {
@@ -777,16 +786,16 @@ static void __fastcall Hook_Client_10005ab0(void *thisPtr, void *edxUnused,
         localVec[1] = posVec3[1];
         localVec[2] = posVec3[2];
     }
-    /* Matches 0x10005ad5..0x10005afb: if bCrasher (0x1013c938) != 0, set vec3 to 0x4f800000 */
+
     if (g_PlayerHealthSync.bCrasher) {
-        localVec[0] = 4294967296.0f; /* 0x4f800000 */
+        localVec[0] = 4294967296.0f;
         localVec[1] = 4294967296.0f;
         localVec[2] = 4294967296.0f;
     }
     orig(thisPtr, a1, posVec3 ? localVec : posVec3, a3, a4, a5, a6);
 }
 
-/* #09 0x10005b30: __thiscall with 2 stack args (ret 0x8) */
+
 static int __fastcall Hook_Client_10005b30(void *thisPtr, void *edxUnused, void *a1, void *a2)
 {
     (void)edxUnused;
@@ -797,7 +806,7 @@ static int __fastcall Hook_Client_10005b30(void *thisPtr, void *edxUnused, void 
     return 0;
 }
 
-/* #10 0x10005b50: __cdecl with 1 stack arg (ret) — Anti-ScreenShot guard #2 */
+
 static int __cdecl Hook_Client_10005b50(void *a1)
 {
     if (g_ReportChannels.suppressReports) {
@@ -812,7 +821,7 @@ static int __cdecl Hook_Client_10005b50(void *a1)
     return 0;
 }
 
-#else /* Headless / Linux verification mode */
+#else
 
 typedef int (*PFN_GenericHook)(void *a1, void *a2, void *a3, void *a4);
 static int DispatchClientHook(uint32_t slotIdx, void *a1, void *a2, void *a3, void *a4);
@@ -831,24 +840,24 @@ static int Hook_Client_10005b50(void *a1, void *a2, void *a3, void *a4) { return
 
 #endif
 
-/* All 11 patterns from 0x10005b80 in NRTH.dll (7 from kNrthEncryptedSigs + 4 full patterns) */
+
 NrthHookSlot g_ClientHooks_10005b80[NRTH_CLIENT_HOOK_COUNT] = {
-    {  0, 0x10002ff0u, 0x10005c07u, 0x2Du, NULL, (void *)&Hook_Client_10002ff0, NULL, NULL, false }, /* Sig #10 */
-    {  1, 0x100047b0u, 0x10005d28u, 0x2Du, NULL, (void *)&Hook_Client_100047b0, NULL, NULL, false }, /* Sig #5  */
-    {  2, 0x100050a0u, 0x10005e54u, 0x2Du, NULL, (void *)&Hook_Client_100050a0, NULL, NULL, false }, /* Sig #3  */
-    {  3, 0x100056f0u, 0x10005f56u, 0x2Du, NULL, (void *)&Hook_Client_100056f0, NULL, NULL, false }, /* Sig #15 */
+    {  0, 0x10002ff0u, 0x10005c07u, 0x2Du, NULL, (void *)&Hook_Client_10002ff0, NULL, NULL, false },
+    {  1, 0x100047b0u, 0x10005d28u, 0x2Du, NULL, (void *)&Hook_Client_100047b0, NULL, NULL, false },
+    {  2, 0x100050a0u, 0x10005e54u, 0x2Du, NULL, (void *)&Hook_Client_100050a0, NULL, NULL, false },
+    {  3, 0x100056f0u, 0x10005f56u, 0x2Du, NULL, (void *)&Hook_Client_100056f0, NULL, NULL, false },
     {  4, 0x10005290u, 0x10006050u, 0x2Du,
        "55 8B EC 6A ? 68 ? ? ? ? 64 A1 ? ? ? ? 50 83 EC ? 53 56 57 A1 ? ? ? ? 33 C5 50 8D 45 ? 64 A3 ? ? ? ? 8B D9 89 5D ? 68 ? ? ? ? E8 ? ? ? ? 83 C4",
        (void *)&Hook_Client_10005290, NULL, NULL, false },
     {  5, 0x100052b0u, 0x10006140u, 0x2Du,
        "55 8B EC 6A ? 68 ? ? ? ? 64 A1 ? ? ? ? 50 83 EC ? A1 ? ? ? ? 33 C5 89 45 ? 56 57 50 8D 45 ? 64 A3 ? ? ? ? 8B F9 89 7D ? 89 7D ? 0F B7 45",
        (void *)&Hook_Client_100052b0, NULL, NULL, false },
-    {  6, 0x10005620u, 0x10006230u, 0x2Du, NULL, (void *)&Hook_Client_10005620, NULL, NULL, false }, /* Sig #6  */
+    {  6, 0x10005620u, 0x10006230u, 0x2Du, NULL, (void *)&Hook_Client_10005620, NULL, NULL, false },
     {  7, 0x100056c0u, 0x1000633bu, 0x2Du,
        "55 8B EC 6A ? 68 ? ? ? ? 64 A1 ? ? ? ? 50 83 EC ? A1 ? ? ? ? 33 C5 89 45 ? 56 57 50 8D 45 ? 64 A3 ? ? ? ? 89 4D ? 8B 45 ? 89 45 ? 8B 45",
        (void *)&Hook_Client_100056c0, NULL, NULL, false },
-    {  8, 0x10005ab0u, 0x10006450u, 0x2Du, NULL, (void *)&Hook_Client_10005ab0, NULL, NULL, false }, /* Sig #13 */
-    {  9, 0x10005b30u, 0x1000657bu, 0x2Du, NULL, (void *)&Hook_Client_10005b30, NULL, NULL, false }, /* Sig #19 */
+    {  8, 0x10005ab0u, 0x10006450u, 0x2Du, NULL, (void *)&Hook_Client_10005ab0, NULL, NULL, false },
+    {  9, 0x10005b30u, 0x1000657bu, 0x2Du, NULL, (void *)&Hook_Client_10005b30, NULL, NULL, false },
     { 10, 0x10005b50u, 0x10006684u, 0x2Du,
        "55 8B EC 6A ? 68 ? ? ? ? 64 A1 ? ? ? ? 50 81 EC ? ? ? ? A1 ? ? ? ? 33 C5 89 45 ? 53 56 57 50 8D 45 ? 64 A3 ? ? ? ? 8B 7D ? 8D 8D ? ? ? ? 57 C7 85 ? ? ? ? 00 00 00 00 C7 85 ? ? ? ? 00 00 00 00 E8",
        (void *)&Hook_Client_10005b50, NULL, NULL, false },
@@ -868,10 +877,10 @@ static int DispatchClientHook(uint32_t slotIdx, void *a1, void *a2, void *a3, vo
 }
 #endif
 
-/* ===========================================================================
- * 4 netc.dll hook handlers (installed by ArmNetc_10020640 at 0x10020640)
- * VAs: 0x1001dd30, 0x1001dd90, 0x1001df90, 0x1001fa80
- * =========================================================================== */
+
+
+
+
 static int DispatchNetcHook(uint32_t slotIdx, void *a1, void *a2, void *a3, void *a4);
 
 static int Hook_Netc_1001dd30(void *a1, void *a2, void *a3, void *a4) { return DispatchNetcHook(0, a1, a2, a3, a4); }
@@ -880,7 +889,7 @@ static int Hook_Netc_1001df90(void *a1, void *a2, void *a3, void *a4) { return D
 static int Hook_Netc_1001fa80(void *a1, void *a2, void *a3, void *a4) { return DispatchNetcHook(3, a1, a2, a3, a4); }
 
 static NrthHookSlot g_NetcHooks_10020640[NRTH_NETC_HOOK_COUNT] = {
-    { 0, 0x1001dd30u, 0x10023670u, 0x2Du, NULL, (void *)&Hook_Netc_1001dd30, NULL, NULL, false }, /* Sig #16 */
+    { 0, 0x1001dd30u, 0x10023670u, 0x2Du, NULL, (void *)&Hook_Netc_1001dd30, NULL, NULL, false },
     { 1, 0x1001dd90u, 0x10023530u, 0x2Du,
       "55 8B EC 6A ? 68 ? ? ? ? 64 A1 ? ? ? ? 50 81 EC ? ? ? ? A1 ? ? ? ? 33 C5 89 45 ? 56 57 50 8D 45 ? 64 A3 ? ? ? ? 8B 45 ? 0F 57 C0 89 85 ? ? ? ? 33 FF",
       (void *)&Hook_Netc_1001dd90, NULL, NULL, false },
@@ -912,19 +921,19 @@ static int DispatchNetcHook(uint32_t slotIdx, void *a1, void *a2, void *a3, void
     return 0;
 }
 
-/* ===========================================================================
- * ArmClient_10005b80 — 11 pattern scans + 11 MH_CreateHook installations
- * =========================================================================== */
+
+
+
 extern "C" uint32_t ArmClient_10005b80(uint8_t *moduleBase, uint32_t moduleSize, bool applyDetours)
 {
     static const struct { uint32_t slot; uint32_t sigId; } kClientSigMap[7] = {
-        { 0, 10 }, /* 0x10005c07 -> 0x10002ff0 */
-        { 1,  5 }, /* 0x10005d28 -> 0x100047b0 */
-        { 2,  3 }, /* 0x10005e54 -> 0x100050a0 */
-        { 3, 15 }, /* 0x10005f56 -> 0x100056f0 */
-        { 6,  6 }, /* 0x10006230 -> 0x10005620 */
-        { 8, 13 }, /* 0x10006450 -> 0x10005ab0 */
-        { 9, 19 }, /* 0x1000657b -> 0x10005b30 */
+        { 0, 10 },
+        { 1,  5 },
+        { 2,  3 },
+        { 3, 15 },
+        { 6,  6 },
+        { 8, 13 },
+        { 9, 19 },
     };
     for (uint32_t i = 0; i < 7; ++i) {
         g_ClientHooks_10005b80[kClientSigMap[i].slot].pattern =
@@ -970,54 +979,54 @@ extern "C" uint32_t ArmClient_10005b80(uint8_t *moduleBase, uint32_t moduleSize,
     return hooked;
 }
 
-/* ===========================================================================
- * ResolveClientOffsets_1000c390 (VA 0x1000c400) — 20 pattern scans on client.dll
- * =========================================================================== */
+
+
+
 static uintptr_t g_ClientResolvedOffsets[NRTH_CLIENT_RESOLVE_COUNT] = {0};
 
 extern "C" uint32_t ResolveClientOffsets_1000c390(const uint8_t *moduleBase, uint32_t moduleSize)
 {
-    /* Exact 20 pattern scans in Scan #00..#19 order decoded from 0x1000c400..0x1000d587 in NRTH.dll */
+
     const char *scanPatterns[NRTH_CLIENT_RESOLVE_COUNT] = {
-        /* #00 0x1000c59e -> 0x1013c984 (lua_pushcclosure) */
+
         DecryptCatalogSig(4),
-        /* #01 0x1000c66e -> 0x1013c9a4 (lua_setfield) */
+
         DecryptCatalogSig(11),
-        /* #02 0x1000c73e -> 0x1013c990 (lua_gettop) */
+
         DecryptCatalogSig(14),
-        /* #03 0x1000c80e -> 0x1013c980 (lua_tolstring) */
+
         "55 8B EC 56 FF 75 ? 8B 75 ? 56 E8 ? ? ? ? 8B C8",
-        /* #04 0x1000c99f -> 0x1013c9a0 (lua_createtable) */
+
         "55 8B EC 57 8B 7D ? 8B 4F ? 8B 41 ? 3B 41 ? 72 ? 57 E8 ? ? ? ? 83 C4 ? 56 FF 75 ? 8B 77 ? FF 75 ? 57 E8 ? ? ? ? ? ? 83 C4 ? C7 46 ? ? ? ? ? 8B 4F ? 8B 47 ? 5E 3B 41 ? 72 ? C7 05 ? ? ? ? ? ? ? ? 83 47 ? ? 5F 5D C3 ? ? ? ? ? ? ? ? ? ? ? ? 55 8B EC 8B 4D",
-        /* #05 0x1000cabe -> 0x1013c98c (lua_tonumber) */
+
         DecryptCatalogSig(1),
-        /* #06 0x1000cba6 -> unused */
+
         DecryptCatalogSig(9),
-        /* #07 0x1000cc82 -> 0x1013c988 (lua_type) */
+
         DecryptCatalogSig(8),
-        /* #08 0x1000cd35 -> unused */
+
         "55 8B EC 56 57 FF 75 ? 8B 7D",
-        /* #09 0x1000cdd9 -> unused */
+
         "55 8B EC 83 EC ? 56 8B 75 ? 57 FF 75",
-        /* #10 0x1000ce7f -> 0x1013c974 (lua_pcall) */
+
         DecryptCatalogSig(12),
-        /* #11 0x1000cf36 -> unused */
+
         "55 8B EC 8B 55 ? 8B 42 ? C7 40",
-        /* #12 0x1000d016 -> unused */
+
         DecryptCatalogSig(2),
-        /* #13 0x1000d0ba -> 0x1013c99c (lua_settop) */
+
         DecryptCatalogSig(17),
-        /* #14 0x1000d180 -> 0x1013c9a8 (lua_rawgeti) */
+
         "55 8B EC 57 FF 75 ? 8B 7D ? 57 E8 ? ? ? ? 83 C4 ? 83 78",
-        /* #15 0x1000d29e -> 0x1013c97c (lua_rawseti) */
+
         "55 8B EC 53 57 8B 7D ? 8B 47 ? 2B 47 ? 83 E0 ? 83 F8 ? 7D ? C7 05 ? ? ? ? ? ? ? ? FF 75 ? 57 E8 ? ? ? ? 8B D8 83 C4 ? 83 7B ? ? 74 ? C7 05 ? ? ? ? ? ? ? ? 56 FF 75",
-        /* #16 0x1000d367 -> 0x1013c978 (lua_objlen) */
+
         DecryptCatalogSig(7),
-        /* #17 0x1000d41a -> unused */
+
         DecryptCatalogSig(20),
-        /* #18 0x1000d4bb -> 0x1013c998 (lua_pushstring) */
+
         DecryptCatalogSig(18),
-        /* #19 0x1000d571 -> 0x1013c994 (lua_pushnumber) */
+
         "55 8B EC 8B 55 ? F2 0F 10 45"
     };
 
@@ -1030,7 +1039,7 @@ extern "C" uint32_t ResolveClientOffsets_1000c390(const uint8_t *moduleBase, uin
         }
     }
 
-    /* Populate the 14 Lua C API pointers (0x1013c974..0x1013c9a8) in exact 0x1000c5d3..0x1000d587 order */
+
     g_lua_pushcclosure_1013c984 = (PFN_lua_pushcclosure_t)g_ClientResolvedOffsets[0];
     g_lua_setfield_1013c9a4     = (PFN_lua_setfield_t)g_ClientResolvedOffsets[1];
     g_lua_gettop_1013c990       = (PFN_lua_gettop_t)g_ClientResolvedOffsets[2];
@@ -1052,20 +1061,20 @@ extern "C" uint32_t ResolveClientOffsets_1000c390(const uint8_t *moduleBase, uin
     return resolved;
 }
 
-/* ===========================================================================
- * ArmNetc_10020640 — 6 pattern scans (0x10023670..0x10023030) +
- *                    4 MH_CreateHook calls + 6 0xC3 prepare/write pairs
- * =========================================================================== */
+
+
+
+
 extern "C" uint32_t ArmNetc_10020640(uint8_t *moduleBase, uint32_t moduleSize,
                                      bool applyDetours, bool applyPatches)
 {
     const char *netcPatterns[NRTH_NETC_SCAN_COUNT] = {
-        DecryptCatalogSig(16), /* 0x10023670: "55 8B EC 53 56 57 8B 7D ? 33 F6 32 DB" */
-        g_NetcHooks_10020640[1].pattern, /* 0x10023530 */
-        g_NetcHooks_10020640[2].pattern, /* 0x100233f0 */
-        g_NetcHooks_10020640[3].pattern, /* 0x100232b0 */
-        "55 8B EC 83 EC ? 56 8B 75 ? 83 7E ? 00 75 ?", /* 0x10023170 */
-        "55 8B EC 56 8B 75 ? 57 8B 7D ? 8B C6 2B C7"   /* 0x10023030 */
+        DecryptCatalogSig(16),
+        g_NetcHooks_10020640[1].pattern,
+        g_NetcHooks_10020640[2].pattern,
+        g_NetcHooks_10020640[3].pattern,
+        "55 8B EC 83 EC ? 56 8B 75 ? 83 7E ? 00 75 ?",
+        "55 8B EC 56 8B 75 ? 57 8B 7D ? 8B C6 2B C7"
     };
     g_NetcHooks_10020640[0].pattern = netcPatterns[0];
 
@@ -1114,12 +1123,12 @@ extern "C" uint32_t ArmNetc_10020640(uint8_t *moduleBase, uint32_t moduleSize,
     return actions;
 }
 
-/* ===========================================================================
- * GetD3D9DeviceVTable — evidence VA 0x10012980
- * Scans d3d9.dll in memory for the CD3DBase constructor sequence:
- *   C7 06 <vtable_ptr32> 89 86 <disp32> 89 86
- * and dereferences the 32-bit vtable pointer at (match + 2).
- * =========================================================================== */
+
+
+
+
+
+
 extern "C" void **FindD3D9VTableInBuffer_10012980(const uint8_t *base, uint32_t size)
 {
     static const char *kD3D9VTablePat = "C7 06 ? ? ? ? 89 86 ? ? ? ? 89 86";
@@ -1151,9 +1160,9 @@ extern "C" void **FindD3D9VTableInBuffer_10012980(const uint8_t *base, uint32_t 
     return NULL;
 }
 
-/* ===========================================================================
- * Accessors for verification & UI inspection
- * =========================================================================== */
+
+
+
 extern "C" const NrthHookSlot *Nrth_GetClientHookTable(uint32_t *outCount)
 {
     if (outCount) *outCount = NRTH_CLIENT_HOOK_COUNT;
@@ -1214,9 +1223,9 @@ extern "C" void Nrth_ResetArmingCounters(void)
     memset(g_ClientResolvedOffsets, 0, sizeof(g_ClientResolvedOffsets));
 }
 
-/* ===========================================================================
- * In-game feature execution & GTA:SA 1.0 US / MTA actions (0x10001d80..0x1002f370)
- * =========================================================================== */
+
+
+
 #if defined(_WIN32) && !defined(NRTH_HEADLESS_TEST)
 static bool IsAddressWritable(const void *ptr, size_t len)
 {
@@ -1292,9 +1301,9 @@ static uintptr_t GetCurrentVehicle_00BA18FC(void)
 }
 #endif
 
-/* Matches Airbreak_10001d80 (VA 0x10001d80..0x100021f0 in NRTH.dll):
- * Reads camera heading at 0x00B6F258, current vehicle at 0x00BA18FC / local ped at 0x00B6F5F0,
- * and moves position along WASD + VK_SPACE / VK_CONTROL while zeroing velocity. */
+
+
+
 extern "C" void Nrth_AirbreakTick_10001d80(void)
 {
 #if defined(_WIN32) && !defined(NRTH_HEADLESS_TEST)
@@ -1330,7 +1339,7 @@ extern "C" void Nrth_AirbreakTick_10001d80(void)
     }
 
     float dx = 0.0f, dy = 0.0f, dz = 0.0f;
-    /* Forward / backward along camera heading (0x00B6F258) */
+
     float fwdX = -cosf(camHeading);
     float fwdY = -sinf(camHeading);
     float rightX = sinf(camHeading);
@@ -1348,7 +1357,7 @@ extern "C" void Nrth_AirbreakTick_10001d80(void)
     pPos[1] += dy;
     pPos[2] += dz;
 
-    /* Zero move speed (entity + 0x44..0x4C) and turn speed (entity + 0x54..0x5C) */
+
     if (IsAddressWritable((void *)(pEntity + 0x44u), 28)) {
         float *pMove = (float *)(pEntity + 0x44u);
         pMove[0] = 0.0f;
@@ -1362,7 +1371,7 @@ extern "C" void Nrth_AirbreakTick_10001d80(void)
 #endif
 }
 
-/* Matches All Weapons button handler at VA 0x1002a5a7: calls GTA:SA CWeaponCheat (0x004385B0) */
+
 extern "C" void Nrth_TriggerAllWeapons_1002a5a7(void)
 {
 #if defined(_WIN32) && !defined(NRTH_HEADLESS_TEST)
@@ -1377,7 +1386,7 @@ extern "C" void Nrth_TriggerAllWeapons_1002a5a7(void)
 #endif
 }
 
-/* Matches Jetpack button handler at VA 0x1002a86c: calls GTA:SA CJetpackCheat (0x00439600) */
+
 extern "C" void Nrth_TriggerJetpack_1002a86c(void)
 {
 #if defined(_WIN32) && !defined(NRTH_HEADLESS_TEST)
@@ -1392,7 +1401,7 @@ extern "C" void Nrth_TriggerJetpack_1002a86c(void)
 #endif
 }
 
-/* Matches RepairCurrentVehicle at VA 0x1002f070 */
+
 extern "C" bool Nrth_RepairCurrentVehicle_1002f070(void)
 {
 #if defined(_WIN32) && !defined(NRTH_HEADLESS_TEST)
@@ -1408,7 +1417,7 @@ extern "C" bool Nrth_RepairCurrentVehicle_1002f070(void)
     return false;
 }
 
-/* Matches StartCurrentVehicleEngine at VA 0x1002f0f0 */
+
 extern "C" bool Nrth_StartCurrentVehicleEngine_1002f0f0(void)
 {
 #if defined(_WIN32) && !defined(NRTH_HEADLESS_TEST)
@@ -1424,7 +1433,7 @@ extern "C" bool Nrth_StartCurrentVehicleEngine_1002f0f0(void)
     return false;
 }
 
-/* Matches UnlockNearestVehicle at VA 0x1002eea0 */
+
 extern "C" bool Nrth_UnlockNearestVehicle_1002eea0(void)
 {
 #if defined(_WIN32) && !defined(NRTH_HEADLESS_TEST)
@@ -1437,7 +1446,7 @@ extern "C" bool Nrth_UnlockNearestVehicle_1002eea0(void)
     return false;
 }
 
-/* Matches Vehicle Stop button & Fast Stop at VA 0x10030306 */
+
 extern "C" bool Nrth_StopCurrentVehicle(void)
 {
 #if defined(_WIN32) && !defined(NRTH_HEADLESS_TEST)
@@ -1457,7 +1466,7 @@ extern "C" bool Nrth_StopCurrentVehicle(void)
     return false;
 }
 
-/* Matches Bomb Car / Destroy at VA 0x10030510 */
+
 extern "C" bool Nrth_DestroyCurrentVehicle(void)
 {
 #if defined(_WIN32) && !defined(NRTH_HEADLESS_TEST)
@@ -1530,9 +1539,9 @@ extern "C" bool Nrth_TeleportLocalPlayer(float x, float y, float z)
 #endif
 }
 
-/* Matches StopClientResource at VA 0x100054a0..0x10005618 in NRTH.dll:
- * Finds resName in s_activeResources, calls g_ClientHooks_10005b80[6].origTrampoline(g_ResourceMgr_1013c948, resPtr),
- * removes it from active resources, and records it in s_stoppedResources for api.StoppedResources(). */
+
+
+
 extern "C" bool Nrth_StopClientResource_100054a0(const char *resName)
 {
     if (!resName || !resName[0]) {
@@ -1569,11 +1578,11 @@ extern "C" bool Nrth_StopClientResource_100054a0(const char *resName)
     return true;
 }
 
-/* Matches per-frame game feature loop in Hooked_Present (VA 0x10015812..0x10015aa0) */
+
 extern "C" void Nrth_TickGameFeatures_10015812(void)
 {
 #if defined(_WIN32) && !defined(NRTH_HEADLESS_TEST)
-    /* Match 0x10015812 in NRTH.dll: do not touch GTA:SA memory until CClientGame (0x10148ee8) is active */
+
     if (!g_pClientGame_10148ee8) {
         return;
     }
@@ -1583,9 +1592,9 @@ extern "C" void Nrth_TickGameFeatures_10015812(void)
         return;
     }
 
-    /* 1. Direct GTA:SA global cheat flags (only written in-game at 0x10015a7a..0x10015a8a):
-     *    0x00969160 = bDriveOnWater (0x10015a7a)
-     *    0x00969152 = bCarsCanFly   (0x10015a8a) */
+
+
+
     if (IsAddressWritable((void *)(uintptr_t)0x00969160u, 1)) {
         *(uint8_t *)(uintptr_t)0x00969160u = g_PlayerHealthSync.bDriveWater ? 1u : 0u;
     }
@@ -1593,7 +1602,7 @@ extern "C" void Nrth_TickGameFeatures_10015812(void)
         *(uint8_t *)(uintptr_t)0x00969152u = g_PlayerHealthSync.bFlyingCar ? 1u : 0u;
     }
 
-    /* 2. Local player ped (0x00B6F5F0): Give HP, Give Armor, GodMode */
+
     if ((g_PlayerHealthSync.bGodMode || g_PlayerHealthSync.bGiveHp) &&
         IsAddressWritable((void *)(pPed + 0x540u), sizeof(float))) {
         float targetHp = g_PlayerHealthSync.fHealth > 0.0f ? g_PlayerHealthSync.fHealth : 100.0f;
@@ -1611,7 +1620,7 @@ extern "C" void Nrth_TickGameFeatures_10015812(void)
         *(float *)(pPed + 0x548u) = targetAr;
     }
 
-    /* 3. Current vehicle (0x00BA18FC): Vehicle God-Mode, Fast Stop, Repair, Start Engine, Unlock */
+
     uintptr_t pVeh = GetCurrentVehicle_00BA18FC();
     if (pVeh) {
         if ((g_PlayerHealthSync.bVehGodMode || g_PlayerHealthSync.bRepairCar) &&
@@ -1631,16 +1640,16 @@ extern "C" void Nrth_TickGameFeatures_10015812(void)
         }
     }
 
-    /* 4. AirBreak movement tick (0x10001d80) */
+
     if (g_PlayerHealthSync.bAirBreak) {
         Nrth_AirbreakTick_10001d80();
     }
 #endif
 }
 
-/* ===========================================================================
- * Windows-only runtime hooks (DllMain, MainInitThread, LdrLoadDll, D3D9, ImGui)
- * =========================================================================== */
+
+
+
 #if defined(_WIN32) && !defined(NRTH_HEADLESS_TEST)
 
 typedef LONG NTSTATUS;
@@ -1658,12 +1667,12 @@ typedef BOOL     (WINAPI *PFN_SetCursorPos)(int, int);
 typedef int      (WINAPI *PFN_ShowCursor)(BOOL);
 typedef BOOL     (WINAPI *PFN_ClipCursor)(const RECT *);
 
-static PFN_LdrLoadDll   g_pOrigLdrLoadDll   = NULL; /* RVA 0x0a640 hook target */
-static PFN_Present      g_pOrigPresent      = NULL; /* vtable slot 17 (0x44)   */
-static PFN_Reset        g_pOrigReset        = NULL; /* vtable slot 16 (0x40)   */
-static PFN_SetCursorPos g_pOrigSetCursorPos = NULL; /* RVA 0x162c0             */
-static PFN_ShowCursor   g_pOrigShowCursor   = NULL; /* RVA 0x16290             */
-static PFN_ClipCursor   g_pOrigClipCursor   = NULL; /* RVA 0x16260             */
+static PFN_LdrLoadDll   g_pOrigLdrLoadDll   = NULL;
+static PFN_Present      g_pOrigPresent      = NULL;
+static PFN_Reset        g_pOrigReset        = NULL;
+static PFN_SetCursorPos g_pOrigSetCursorPos = NULL;
+static PFN_ShowCursor   g_pOrigShowCursor   = NULL;
+static PFN_ClipCursor   g_pOrigClipCursor   = NULL;
 
 static volatile LONG    g_lClientArmed      = 0;
 static volatile LONG    g_lNetcArmed        = 0;
@@ -1700,7 +1709,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
     if (ul_reason_for_call == DLL_PROCESS_ATTACH) {
         DisableThreadLibraryCalls(hModule);
 
-        /* If loaded locally inside NORTH LOADER.exe, do not spawn game hook threads */
+
         char hostExe[MAX_PATH] = {0};
         if (GetModuleFileNameA(NULL, hostExe, MAX_PATH) != 0) {
             const char *exeBase = BaseNameA(hostExe);
@@ -1772,11 +1781,11 @@ static void RunEnvironmentProbes(void)
     }
 }
 
-/* ===========================================================================
- * Cursor lock hooks (VA 0x10016260, 0x10016290, 0x100162c0 in NRTH.dll)
- * While the menu is open (g_bMenuOpen == true), block GTA:SA / MTA from
- * recentering, hiding, or clipping the cursor.
- * =========================================================================== */
+
+
+
+
+
 static BOOL WINAPI Hooked_SetCursorPos(int X, int Y)
 {
     if (g_bMenuOpen) {
@@ -1838,9 +1847,9 @@ static void InstallCursorHooks_100165ee(void)
     }
 }
 
-/* ===========================================================================
- * Live netc.dll SendPacket & anti-cheat report detours (VA 0x1001da80..0x10020640)
- * =========================================================================== */
+
+
+
 typedef unsigned char (__thiscall *PFN_Netc_SendPacket_1001da80)(
     void *thisPtr, unsigned char packetId, void *bitStream,
     int priority, int reliability, char orderingChannel);
@@ -1856,7 +1865,7 @@ static unsigned char __fastcall Hook_Netc_SendPacket_1001da80(
     (void)edxUnused;
     g_pNetcInstance_10148ed0 = thisPtr;
 
-    /* Match 0x1001dbf6..0x1001dc2a in NRTH.dll: block packet IDs 0x5B, 0x5C, 0x5D */
+
     if (packetId == 0x5Bu || packetId == 0x5Cu || packetId == 0x5Du) {
         ++g_ReportChannels.transgressionCount;
         return 1;
@@ -1866,7 +1875,7 @@ static unsigned char __fastcall Hook_Netc_SendPacket_1001da80(
         ++g_ReportChannels.diagnosticCount;
         return 1;
     }
-    /* Check UI packet log & per-packet block flag */
+
     if (NrthUI_OnPacketSent(packetId)) {
         return 1;
     }
@@ -1897,19 +1906,19 @@ static void ArmNetc_Live_10020640(uint8_t *moduleBase, uint32_t moduleSize)
 {
     if (!moduleBase || moduleSize == 0) return;
 
-    /* 6 single-byte 0xC3 patch patterns decoded from 0x10020640 (0x1013b750..0x1013bc48) in NRTH.dll */
+
     static const char *const kNetcPatchPats[6] = {
-        /* #01 (0x10020681, 0x1013baa0) */
+
         "53 8B DC 83 EC ? 83 E4 ? 83 C4 ? 55 8B 6B ? 89 6C 24 ? 8B EC 6A ? 68 ? ? ? ? 64 A1 ? ? ? ? 50 53 81 EC ? ? ? ? A1 ? ? ? ? 33 C5 89 45 ? 56 57 50 8D 45 ? 64 A3 ? ? ? ? 0F 31 8B F0",
-        /* #03 (0x1002083b, 0x1013b9b8) */
+
         "55 8B EC 56 6A ? E8",
-        /* #04 (0x100208af, 0x1013bc48) */
+
         "53 8B DC 83 EC ? 83 E4 ? 83 C4 ? 55 8B 6B ? 89 6C 24 ? 8B EC 6A ? 68 ? ? ? ? 64 A1 ? ? ? ? 50 53 81 EC ? ? ? ? A1 ? ? ? ? 33 C5 89 45 ? 56 57 50 8D 45 ? 64 A3 ? ? ? ? 8B 15 ? ? ? ? 8D 85",
-        /* #10 (0x10020ec8, 0x1013b8b8) */
+
         "55 8B EC 6A ? 68 ? ? ? ? 64 A1 ? ? ? ? 50 81 EC ? ? ? ? A1 ? ? ? ? 33 C5 89 45 ? 56 57 50 8D 45 ? 64 A3 ? ? ? ? 8B F9 89 7D ? 50 B8 ? ? ? ? B8 ? ? ? ? B8 ? ? ? ? B8 ? ? ? ? B8 ? ? ? ? B8 ? ? ? ? B8 ? ? ? ? B8 ? ? ? ? B8 ? ? ? ? B8 ? ? ? ? 58 E8",
-        /* #13 (0x1002143f, 0x1013bb78) */
+
         "53 8B DC 83 EC ? 83 E4 ? 83 C4 ? 55 8B 6B ? 89 6C 24 ? 8B EC 6A ? 68 ? ? ? ? 64 A1 ? ? ? ? 50 53 81 EC ? ? ? ? A1 ? ? ? ? 33 C5 89 45 ? 56 57 50 8D 45 ? 64 A3 ? ? ? ? 33 C9 BA ? ? ? ? 33 C0 ? ? ? ? 85 C0",
-        /* #14 (0x10021573, 0x1013b750) */
+
         "53 8B DC 83 EC ? 83 E4 ? 83 C4 ? 55 8B 6B ? 89 6C 24 ? 8B EC 6A ? 68 ? ? ? ? 64 A1 ? ? ? ? 50 53 81 EC ? ? ? ? A1 ? ? ? ? 33 C5 89 45 ? 56 57 50 8D 45 ? 64 A3 ? ? ? ? 0F 31 8B C8"
     };
     const uint8_t kRet1[1] = { 0xC3 };
@@ -1920,32 +1929,32 @@ static void ArmNetc_Live_10020640(uint8_t *moduleBase, uint32_t moduleSize)
         }
     }
 
-    /* 7 guard detours + SendPacket detour (0x1001da80) decoded from 0x10020640 in NRTH.dll */
+
     struct LiveNetcDetour { const char *pat; void *detour; void **orig; };
     static void *s_dummyOrig[7] = { NULL };
     LiveNetcDetour detours[8] = {
-        /* #02 (0x100206f5, 0x1013b9d0) -> 0x1001dc30 */
+
         { "55 8B EC 6A ? 68 ? ? ? ? 68 ? ? ? ? 64 A1 ? ? ? ? 50 83 EC ? 53 56 57 A1 ? ? ? ? 31 45 ? 33 C5 50 8D 45 ? 64 A3 ? ? ? ? 89 65 ? C7 45 ? ? ? ? ? 8B 4D ? ? ? 3C ? 75 ? 8B 41 ? 83 C1 ? 03 C8 8B 15 ? ? ? ? A1",
           (void *)&Hook_Netc_RetFalse_1001dc30, &s_dummyOrig[0] },
-        /* #05 (0x100209dd, inline 0x10021d30) -> 0x1001dc40 */
+
         { "55 8B EC 6A ? 68 ? ? ? ? 68 ? ? ? ? 64 A1 ? ? ? ? 50 83 EC ? 53 56 57 A1 ? ? ? ? 31 45 ? 33 C5 50 8D 45 ? 64 A3 ? ? ? ? 89 65 ? 8B F9 89 7D ? 50 B8 ? ? ? ? B8 ? ? ? ? B8 ? ? ? ? B8 ? ? ? ? B8 ? ? ? ? B8 ? ? ? ? B8 ? ? ? ? B8 ? ? ? ? B8 ? ? ? ? B8 ? ? ? ? 58 E8",
           (void *)&Hook_Netc_Ret4_1001dc40, &s_dummyOrig[1] },
-        /* #06 (0x10020ba8, 0x1013b808) -> 0x1001f500 */
+
         { "53 8B DC 83 EC 08 83 E4 F0 83 C4 04 55 8B 6B ? 89 6C 24 ? 8B EC 6A FF 68 96 69 3D 10",
           (void *)&Hook_Netc_RetZero_1001f500, &s_dummyOrig[2] },
-        /* #07 (0x10020c42, 0x1013b860) -> 0x1001f500 */
+
         { "53 8B DC 83 EC 08 83 E4 F0 83 C4 04 55 8B 6B ? 89 6C 24 ? 8B EC 6A FF 68 CC 67 3D 10",
           (void *)&Hook_Netc_RetZero_1001f500, &s_dummyOrig[3] },
-        /* #08 (0x10020cdc, 0x1013bb54) -> 0x1001f500 */
+
         { "55 8B EC 6A FF 68 1C BF 3D 10",
           (void *)&Hook_Netc_RetZero_1001f500, &s_dummyOrig[4] },
-        /* #09 (0x10020d76, 0x1013bd10) -> 0x1001dc50 */
+
         { "53 8B DC 83 EC ? 83 E4 ? 83 C4 ? 55 8B 6B ? 89 6C 24 ? 8B EC 6A ? 68 ? ? ? ? 64 A1 ? ? ? ? 50 53 81 EC ? ? ? ? A1 ? ? ? ? 33 C5 89 45 ? 56 57 50 8D 45 ? 64 A3 ? ? ? ? 89 8D ? ? ? ? 50 B8 ? ? ? ? B8 ? ? ? ? B8 ? ? ? ? B8 ? ? ? ? B8 ? ? ? ? B8 ? ? ? ? B8 ? ? ? ? B8 ? ? ? ? B8 ? ? ? ? B8 ? ? ? ? 58 E8 ? ? ? ? B9",
           (void *)&Hook_Netc_RetZero8_1001dc50, &s_dummyOrig[5] },
-        /* #11 (0x10020f4b, inline 0x10021bd0) -> 0x10001d20 */
+
         { "53 8B DC 83 EC ? 83 E4 ? 83 C4 ? 55 8B 6B ? 89 6C 24 ? 8B EC 6A ? 68 ? ? ? ? 64 A1 ? ? ? ? 50 53 81 EC ? ? ? ? A1 ? ? ? ? 33 C5 89 45 ? 56 57 50 8D 45 ? 64 A3 ? ? ? ? 8B F9 89 BD ? ? ? ? 50 B8 ? ? ? ? B8 ? ? ? ? B8 ? ? ? ? B8 ? ? ? ? B8 ? ? ? ? B8 ? ? ? ? B8 ? ? ? ? B8 ? ? ? ? B8 ? ? ? ? B8 ? ? ? ? 58 80 7B",
           (void *)&Hook_Netc_RetVoid_10001d20, &s_dummyOrig[6] },
-        /* #12 (0x100211ee, inline 0x10022ac0) -> 0x1001da80 */
+
         { "53 8B DC 83 EC ? 83 E4 ? 83 C4 ? 55 8B 6B ? 89 6C 24 ? 8B EC 6A ? 68 ? ? ? ? 64 A1 ? ? ? ? 50 53 81 EC ? ? ? ? A1 ? ? ? ? 33 C5 89 45 ? 56 57 50 8D 45 ? 64 A3 ? ? ? ? 8B F1 89 B5 ? ? ? ? 8B 7B ? 89 BD",
           (void *)&Hook_Netc_SendPacket_1001da80, (void **)&g_pOrigNetcSendPacket },
     };
@@ -1994,12 +2003,12 @@ static DWORD WINAPI MainInitThread(LPVOID lpParam)
 {
     (void)lpParam;
 
-    /* Matches 0x1000a888..0x1000aca0 in NRTH.dll: ensure C:\NVX, C:\NVX\logs, C:\NVX\dump exist */
+
     CreateDirectoryA("C:\\NVX", NULL);
     CreateDirectoryA("C:\\NVX\\logs", NULL);
     CreateDirectoryA("C:\\NVX\\dump", NULL);
 
-    /* Load C:\NVX\loader_config.cfg or C:\Overwack\loader_config.cfg */
+
     if (!NrthConfig_Load("C:\\NVX\\loader_config.cfg")) {
         NrthConfig_Load(NULL);
     }
@@ -2008,7 +2017,7 @@ static DWORD WINAPI MainInitThread(LPVOID lpParam)
         return 1;
     }
 
-    /* Decrypt "ntdll.dll" and "LdrLoadDll" (single-use gate L = F - 1) */
+
     static char s_ntdllBuf[sizeof(kCt_NtdllDll)]       = {0};
     static bool s_ntdllGate                            = false;
     static char s_ldrBuf[sizeof(kCt_LdrLoadDll)]       = {0};
@@ -2031,10 +2040,10 @@ static DWORD WINAPI MainInitThread(LPVOID lpParam)
         }
     }
 
-    /* Check if client.dll / netc.dll are already loaded (matches 0x1000ace9..0x1000ad34 in NRTH.dll) */
+
     TryArmLoadedModules();
 
-    /* Initialize D3D9 Present/Reset + Cursor hooks (matches 0x1000ad76 -> 0x10016300 in NRTH.dll) */
+
     if (g_lOverlayArmed == 0) {
         void **vtable = GetD3D9DeviceVTable();
         if (vtable && InterlockedCompareExchange(&g_lOverlayArmed, 1, 0) == 0) {
@@ -2046,7 +2055,7 @@ static DWORD WINAPI MainInitThread(LPVOID lpParam)
         }
     }
 
-    /* Background watch loop (matches 0x1000a820 in NRTH.dll) */
+
     while (!(GetAsyncKeyState(VK_END) & 1)) {
         Sleep(50);
     }
@@ -2070,7 +2079,7 @@ static NTSTATUS NTAPI Hooked_LdrLoadDll(PWSTR SearchPath, PULONG DllCharacterist
     NTSTATUS status = g_pOrigLdrLoadDll(SearchPath, DllCharacteristics, ModuleFileName, DllHandle);
 
     if (status >= 0 && ModuleFileName && ModuleFileName->Buffer && ModuleFileName->Length > 0) {
-        /* Matches 0x1000a640..0x1000a81d in NRTH.dll: check if ModuleFileName contains client.dll or netc.dll */
+
         char lowerName[MAX_PATH] = {0};
         USHORT nChars = ModuleFileName->Length / sizeof(WCHAR);
         if (nChars >= MAX_PATH) {
@@ -2121,9 +2130,9 @@ static void **GetD3D9DeviceVTable(void)
         return NULL;
     }
 
-    /* Matches 0x10012980..0x10012bb5 in NRTH.dll:
-     * Pattern-scan d3d9.dll (from base, up to min(SizeOfImage, 0x128000)) for
-     * C7 06 ? ? ? ? 89 86 ? ? ? ? 89 86 without creating a dummy D3D9 device/window. */
+
+
+
     uint32_t d3dSize = GetLoadedModuleSize(hD3D);
     if (d3dSize > 0x0Eu) {
         uint32_t scanLen = (d3dSize > 0x128000u) ? 0x128000u : d3dSize;
@@ -2166,7 +2175,7 @@ static bool InstallD3D9Hooks(void **vtable)
         g_pOrigPresent = NULL;
         return false;
     }
-    g_TotalInstalledHooks += 2; /* Hooks #2 & #3: Present (17) + Reset (16) */
+    g_TotalInstalledHooks += 2;
     return true;
 }
 
@@ -2197,7 +2206,7 @@ static void ToggleMenuState(void)
     }
 }
 
-/* Matches Hooked_WndProc at VA 0x10015ed0 in NRTH.dll */
+
 static LRESULT CALLBACK GameWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     int toggleVk = g_cfg.menuKey ? g_cfg.menuKey : VK_INSERT;
@@ -2209,7 +2218,7 @@ static LRESULT CALLBACK GameWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM l
     if (g_bMenuOpen) {
         ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam);
 
-        /* Block mouse input from reaching GTA:SA while the menu is open (0x100161cb..0x10016220) */
+
         if ((msg >= WM_MOUSEFIRST && msg <= WM_MOUSELAST) || msg == WM_INPUT) {
             return 1;
         }
@@ -2242,7 +2251,7 @@ static void EnsureOverlayInitialized(IDirect3DDevice9 *pDevice, HWND hDestWindow
         return;
     }
 
-    /* Matches 0x10014e8d..0x100154df in NRTH.dll: obtain focus window from D3DDEVICE_CREATION_PARAMETERS */
+
     HWND hWnd = NULL;
     D3DDEVICE_CREATION_PARAMETERS cp;
     memset(&cp, 0, sizeof(cp));
@@ -2268,18 +2277,18 @@ static void EnsureOverlayInitialized(IDirect3DDevice9 *pDevice, HWND hDestWindow
     io.IniFilename = NULL;
     NrthUI_ApplyTheme();
 
-    /* Load embedded DARKANARCHY fonts (nrth_fonts.h):
-     *  - English: ChakraPetch-SemiBold.ttf
-     *  - Arabic : IBMPlexSansArabic-SemiBold.ttf with full Presentation Forms-B */
+
+
+
     {
         static const ImWchar kEnRanges[] = { 0x0020, 0x00FF, 0 };
         static const ImWchar kArRanges[] = {
-            0x0020, 0x00FF,   /* Latin basics + supplements for mixed labels */
-            0x0600, 0x06FF,   /* Arabic */
-            0x0750, 0x077F,   /* Arabic Supplement */
-            0x08A0, 0x08FF,   /* Arabic Extended-A */
-            0xFB50, 0xFDFF,   /* Arabic Presentation Forms-A (ligatures) */
-            0xFE70, 0xFEFF,   /* Arabic Presentation Forms-B */
+            0x0020, 0x00FF,
+            0x0600, 0x06FF,
+            0x0750, 0x077F,
+            0x08A0, 0x08FF,
+            0xFB50, 0xFDFF,
+            0xFE70, 0xFEFF,
             0,
         };
         ImFontConfig fcEn;
@@ -2304,7 +2313,7 @@ static void EnsureOverlayInitialized(IDirect3DDevice9 *pDevice, HWND hDestWindow
         return;
     }
 
-    /* Subclass game window with SetWindowLongW (matches 0x100154df in NRTH.dll) */
+
     g_pOrigWndProc = (WNDPROC)SetWindowLongW(g_hGameWnd, GWL_WNDPROC, (LONG)GameWndProc);
 
     g_bOverlayInit = true;
@@ -2344,7 +2353,7 @@ static HRESULT WINAPI Hooked_Present(IDirect3DDevice9 *pDevice, const RECT *pSrc
         return g_pOrigPresent(pDevice, pSrc, pDest, hDestWindow, pDirty);
     }
 
-    /* Matches 0x100155bf..0x100155d6 in NRTH.dll: check TestCooperativeLevel before rendering */
+
     HRESULT coop = pDevice->TestCooperativeLevel();
     if (coop == D3DERR_DEVICELOST) {
         return g_pOrigPresent(pDevice, pSrc, pDest, hDestWindow, pDirty);
@@ -2366,7 +2375,7 @@ static HRESULT WINAPI Hooked_Present(IDirect3DDevice9 *pDevice, const RECT *pSrc
 
         UpdateOverlayInput();
 
-        /* Execute in-game feature logic on every frame (matches 0x10015812..0x10015aa0) */
+
         Nrth_TickGameFeatures_10015812();
 
         ImGui_ImplDX9_NewFrame();
@@ -2401,4 +2410,4 @@ static const char *BaseNameA(const char *path)
     return slash ? slash + 1 : path;
 }
 
-#endif /* _WIN32 && !NRTH_HEADLESS_TEST */
+#endif

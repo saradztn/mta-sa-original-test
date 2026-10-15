@@ -1,24 +1,33 @@
-/**
- * ============================================================================
- * nrth_audit.cpp — NORTH/NVX **defensive audit** module (result class R2)
- * ============================================================================
- * Implements detection logic derived from the real mechanism of NRTH.dll
- * (mta_blue_team_case/mechanism_overview_ar.md §3.1, §3.2, §4):
- *   * the sample's positional-XOR string codec, so a defender can decode the
- *     obfuscated records of a new variant without re-doing the disassembly;
- *   * a byte-pattern matcher with '?' wildcards, matching the semantics of the
- *     sample's own resolver (VA 0x10002960), used here to locate the *targets*;
- *   * a prologue-state classifier that recognises the footprint the sample leaves
- *     when it detours a function (E9 / FF 25) or kills a check (C3 / C2 imm16).
- *
- * It contains NO injection, NO hook installation, NO memory writes, NO module
- * pinning, NO string obfuscation of payload, NO game-VM execution and NO feature
- * logic. It reads bytes and reports. See nrth_audit.h for the scope rationale.
- *
- * All buffer handling is bounds-checked against untrusted input: a truncated,
- * malformed or hostile PE must return an error, never read out of bounds.
- * ============================================================================
- */
+/* ============================================================================
+ *  فريق الحماية و استكشاف الثغرات - هاكرز ابيض
+ *  Security & Vulnerability Research Team — White Hat Hackers
+ * ----------------------------------------------------------------------------
+ *  MTA:SA security research test bed — mta-sa-original-test
+ *  Internal security research material. All rights reserved by the team above.
+ *  Redistribution, public release and reuse outside the team are not authorized.
+ *  NRTH-SEC-RESEARCH-HEADER
+ * ============================================================================ */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nrth_audit.h"
 #include "nrth_audit_sigs.h"
 
@@ -26,13 +35,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define NVXA_MAX_PAT   512     /* max pattern tokens (sample's longest: 120)      */
-#define NVXA_MAX_HITS  64      /* hits kept per pattern per section               */
-#define NVXA_HEAD_WIDE 8       /* bytes a near-detour may overwrite (5..8)        */
+#define NVXA_MAX_PAT   512
+#define NVXA_MAX_HITS  64
+#define NVXA_HEAD_WIDE 8
 
-/* -------------------------------------------------------------------------- */
-/* little-endian helpers                                                       */
-/* -------------------------------------------------------------------------- */
+
+
+
 static uint32_t nvxa_rd32(const uint8_t *p)
 {
     return (uint32_t)p[0] | ((uint32_t)p[1] << 8) | ((uint32_t)p[2] << 16) | ((uint32_t)p[3] << 24);
@@ -82,11 +91,11 @@ extern "C" const char *NrthPrologueStateName(uint32_t state)
     }
 }
 
-/* -------------------------------------------------------------------------- */
-/* codec:  out[p] = in[p] ^ ((p - key) & 0xFF)                                 */
-/* Verified against the sample's decryptors 0x100078d0 (scalar, key 0x2D) and  */
-/* 0x1000bc00 (SSE, key 0x20); the transform is symmetric so it also encodes.  */
-/* -------------------------------------------------------------------------- */
+
+
+
+
+
 extern "C" int32_t NrthXorTransform(const uint8_t *in, uint32_t len, uint32_t key,
                                    uint8_t *out, uint32_t outCap)
 {
@@ -161,9 +170,9 @@ extern "C" int32_t NrthXorDecodeRecordAt(const NrthPeView *pe, uint32_t va, uint
     return NrthXorCrack(p, len, text, textCap, outKey);
 }
 
-/* -------------------------------------------------------------------------- */
-/* pattern engine — same surface syntax the sample uses ("55 8B ? A3 ...")     */
-/* -------------------------------------------------------------------------- */
+
+
+
 static int nvxa_hex(int c)
 {
     if (c >= '0' && c <= '9') return c - '0';
@@ -190,7 +199,7 @@ extern "C" int32_t NrthPatCompile(const char *text, uint8_t *bytes, uint8_t *mas
         if (n >= cap) {
             return NVXA_E_INVALID;
         }
-        if (p[0] == '?' || p[0] == '*' || p[0] == '.') {   /* wildcard token: "?", "??" */
+        if (p[0] == '?' || p[0] == '*' || p[0] == '.') {
             bytes[n] = 0;
             mask[n] = 0;
             ++n;
@@ -217,7 +226,7 @@ extern "C" int32_t NrthPatCompile(const char *text, uint8_t *bytes, uint8_t *mas
         mask[n] = 0xff;
         ++n;
         while (*q && *q != ' ' && *q != '\t') {
-            ++q;                                        /* trailing junk ignored */
+            ++q;
         }
         p = q;
     }
@@ -225,10 +234,10 @@ extern "C" int32_t NrthPatCompile(const char *text, uint8_t *bytes, uint8_t *mas
     return (int32_t)n;
 }
 
-/* Scan for a compiled pattern; hits[] receives byte offsets. */
-/* Wildcard scan. Fills hits[] with at most maxHits byte offsets and returns how many it
- * wrote; *total (optional) receives the full number of matches, which can be larger —
- * callers must never index hits[] beyond the returned count. */
+
+
+
+
 static int32_t nvxa_scan_compiled(const uint8_t *buf, uint32_t len, const uint8_t *bytes,
                                  const uint8_t *mask, uint32_t plen, uint32_t *hits,
                                  uint32_t maxHits, uint32_t *total)
@@ -236,12 +245,12 @@ static int32_t nvxa_scan_compiled(const uint8_t *buf, uint32_t len, const uint8_
     if (!buf || !bytes || plen == 0 || plen > len) {
         return 0;
     }
-    /* anchor on the first concrete byte */
+
     uint32_t anchor = 0;
     while (anchor < plen && mask[anchor] == 0) {
         ++anchor;
     }
-    if (anchor >= plen) {            /* all wildcards: refuse (would match everywhere) */
+    if (anchor >= plen) {
         return NVXA_E_INVALID;
     }
     uint8_t ab = bytes[anchor];
@@ -265,7 +274,7 @@ static int32_t nvxa_scan_compiled(const uint8_t *buf, uint32_t len, const uint8_
             hits[count] = start;
         }
         ++count;
-        i += plen - 1 - anchor;      /* non-overlapping matches */
+        i += plen - 1 - anchor;
     }
     if (total) {
         *total = count;
@@ -285,9 +294,9 @@ extern "C" int32_t NrthPatScan(const uint8_t *buf, uint32_t len, const char *pat
     return nvxa_scan_compiled(buf, len, bytes, mask, plen, hits, maxHits, NULL);
 }
 
-/* Shared token rewriter behind NrthPatWidenHead / NrthPatPatchHead. With `replace == NULL`
- * the first `head` tokens become '?'; otherwise they are dropped and `replace` (a concrete
- * footprint such as "E9 ? ? ? ?") is written in front. Returns the output token count. */
+
+
+
 static int32_t nvxa_pat_rewrite(const char *pattern, uint32_t head, const char *replace,
                                 char *out, uint32_t outCap)
 {
@@ -296,7 +305,7 @@ static int32_t nvxa_pat_rewrite(const char *pattern, uint32_t head, const char *
     }
     uint32_t tok = 0;
     const char *p = pattern;
-    if (replace) {                                  /* skip the tokens the footprint replaces */
+    if (replace) {
         while (tok < head) {
             while (*p == ' ') {
                 ++p;
@@ -370,10 +379,10 @@ extern "C" int32_t NrthPatWidenHead(const char *pattern, uint32_t head, char *ou
     return nvxa_pat_rewrite(pattern, head, NULL, out, outCap);
 }
 
-/* -------------------------------------------------------------------------- */
-/* prologue classification: recognises the shapes produced by the sample's      */
-/* detour installation (MinHook) and by its one-byte "check kill" writes.       */
-/* -------------------------------------------------------------------------- */
+
+
+
+
 extern "C" int32_t NrthClassifyPrologue(const uint8_t *func, uint32_t avail, uint32_t *outDetail)
 {
     if (outDetail) {
@@ -394,7 +403,7 @@ extern "C" int32_t NrthClassifyPrologue(const uint8_t *func, uint32_t avail, uin
     }
     if (b0 == 0xE9 && avail >= 5) {
         if (outDetail) {
-            *outDetail = nvxa_rd32(func + 1);      /* rel32, add to (rva+5) to resolve */
+            *outDetail = nvxa_rd32(func + 1);
         }
         return NRTH_PRO_DETOUR_JMP32;
     }
@@ -429,12 +438,12 @@ extern "C" int32_t NrthClassifyPrologue(const uint8_t *func, uint32_t avail, uin
             return NRTH_PRO_PAD;
         }
     }
-    return (int32_t)NRTH_PRO_UNKNOWN;   /* ordinary prologue: nothing patched */
+    return (int32_t)NRTH_PRO_UNKNOWN;
 }
 
-/* -------------------------------------------------------------------------- */
-/* PE view                                                                      */
-/* -------------------------------------------------------------------------- */
+
+
+
 extern "C" int32_t NrthPeMap(const uint8_t *img, uint32_t size, NrthPeView *out)
 {
     if (!img || !out || size < 0x40) {
@@ -444,23 +453,23 @@ extern "C" int32_t NrthPeMap(const uint8_t *img, uint32_t size, NrthPeView *out)
     out->img = img;
     out->size = size;
 
-    if (nvxa_rd16(img) != 0x5A4D) {                     /* 'MZ' */
+    if (nvxa_rd16(img) != 0x5A4D) {
         return NVXA_E_FORMAT;
     }
     uint32_t peOff = nvxa_rd32(img + 0x3C);
-    if (peOff + 24 >= size || nvxa_rd32(img + peOff) != 0x00004550) {   /* 'PE\0\0' */
+    if (peOff + 24 >= size || nvxa_rd32(img + peOff) != 0x00004550) {
         return NVXA_E_FORMAT;
     }
     const uint8_t *coh = img + peOff;
     out->machine = nvxa_rd16(coh + 4);
     uint32_t nSec = nvxa_rd16(coh + 6);
     out->timestamp = nvxa_rd32(coh + 8);
-    /* Offsets relative to the 'PE\0\0' signature: Machine@4 NumberOfSections@6
-       TimeDateStamp@8 PointerToSymbolTable@12 NumberOfSymbols@16
-       SizeOfOptionalHeader@20 Characteristics@22, optional header@24. */
+
+
+
     uint32_t optSize = nvxa_rd16(coh + 20);
     out->characteristics = nvxa_rd16(coh + 22);
-    uint32_t opt = peOff + 4 + 20;              /* after 'PE\0\0' + 20-byte file header */
+    uint32_t opt = peOff + 4 + 20;
     if (opt + 16 > size || nSec == 0 || nSec > NRTH_PE_MAX_SECTIONS || opt + optSize > size) {
         return NVXA_E_FORMAT;
     }
@@ -487,10 +496,10 @@ extern "C" int32_t NrthPeMap(const uint8_t *img, uint32_t size, NrthPeView *out)
         s->raw = nvxa_rd32(e + 20);
         s->characteristics = nvxa_rd32(e + 36);
     }
-    /* File image vs. already-mapped dump. A file image has every section that carries
-     * data on disk (`rsize > 0`) stored inside the buffer at a sane raw offset. A dump
-     * keeps the virtual layout instead, so we index by RVA. Sections with rsize == 0
-     * (uninitialised .data, .pdata, resource overlays, ...) say nothing either way. */
+
+
+
+
     out->mapped = 0;
     for (uint32_t i = 0; i < nSec; ++i) {
         const NrthPeSection *s = &out->sec[i];
@@ -579,12 +588,12 @@ extern "C" uint32_t NrthPeTextRva(const NrthPeView *pe)
     return pe->nSections ? pe->sec[0].rva : 0;
 }
 
-/* -------------------------------------------------------------------------- */
-/* whole-module audit                                                           */
-/* -------------------------------------------------------------------------- */
-/* True when the compiled pattern matches at exactly this offset — used to decide whether a
- * widened ("patched") hit is really the pristine pattern, without relying on the capped
- * hit array. */
+
+
+
+
+
+
 static int nvxa_match_at(const uint8_t *buf, uint32_t len, uint32_t off, const uint8_t *bytes,
                          const uint8_t *mask, uint32_t plen)
 {
@@ -635,21 +644,21 @@ static void nvxa_note(NrthSigFinding *f, uint32_t secRva, uint32_t off, int full
     }
 }
 
-/* The four shapes this audit looks for when the complete pattern does not match. Each one
- * is what the sample itself writes (or what MinHook writes on its behalf): the leading
- * tokens of the target function are replaced by the footprint, the rest of the function is
- * untouched. Requiring the concrete footprint bytes instead of a wildcarded head is what
- * keeps the on-disk check free of coincidences. */
+
+
+
+
+
 #define NVXA_N_FOOTPRINT 4
 static const struct {
-    const char *footprint;   /* tokens written over the function entry            */
-    uint32_t head;           /* how many pattern tokens they replace              */
-    uint32_t state;          /* NrthPrologueState to report                       */
+    const char *footprint;
+    uint32_t head;
+    uint32_t state;
 } kNvxaFootprint[NVXA_N_FOOTPRINT] = {
-    { "C3",             1, NRTH_PRO_KILL_RET },       /* the sample's 1-byte check kill */
-    { "E9 ? ? ? ?",      5, NRTH_PRO_DETOUR_JMP32 },   /* MinHook near jump            */
-    { "FF 25 ? ? ? ?",   6, NRTH_PRO_DETOUR_FARJMP }, /* absolute jump through memory  */
-    { "68 ? ? ? ? C3",   5, NRTH_PRO_DETOUR_PUSHRET } /* push addr / ret trampoline      */
+    { "C3",             1, NRTH_PRO_KILL_RET },
+    { "E9 ? ? ? ?",      5, NRTH_PRO_DETOUR_JMP32 },
+    { "FF 25 ? ? ? ?",   6, NRTH_PRO_DETOUR_FARJMP },
+    { "68 ? ? ? ? C3",   5, NRTH_PRO_DETOUR_PUSHRET }
 };
 
 extern "C" int32_t NrthAuditImage(const uint8_t *img, uint32_t size, NrthSigFinding *findings,
@@ -710,7 +719,7 @@ extern "C" int32_t NrthAuditImage(const uint8_t *img, uint32_t size, NrthSigFind
                 nvxa_note(&findings[si], srva, hitsFull[i], 1, NRTH_PRO_PRISTINE, 0);
             }
             if (findings && tFull > (uint32_t)hFull) {
-                findings[si].fullHits += tFull - (uint32_t)hFull;  /* hits beyond the buffer */
+                findings[si].fullHits += tFull - (uint32_t)hFull;
             }
             total += tFull;
             if (tFull) {
@@ -726,16 +735,16 @@ extern "C" int32_t NrthAuditImage(const uint8_t *img, uint32_t size, NrthSigFind
                 for (int32_t i = 0; i < hF; ++i) {
                     uint32_t off = hitsF[i];
                     if (nvxa_match_at(sd, slen, off, bExact, mExact, nExact)) {
-                        continue;                    /* the function entry is intact */
+                        continue;
                     }
                     uint32_t detail = 0;
-                    /* keep where the detour points so an analyst can follow it */
-                    if (fi == 1) {                                  /* E9 rel32 */
+
+                    if (fi == 1) {
                         if (off + 5 <= slen) {
                             int32_t rel = (int32_t)nvxa_rd32(sd + off + 1);
                             detail = (uint32_t)((int32_t)(srva + off + 5) + rel);
                         }
-                    } else if (fi == 2 || fi == 3) {                /* FF 25 abs32 / 68 abs32 */
+                    } else if (fi == 2 || fi == 3) {
                         uint32_t d = (fi == 2) ? 2u : 1u;
                         if (off + d + 4 <= slen) {
                             uint32_t abs = nvxa_rd32(sd + off + d);
@@ -749,7 +758,7 @@ extern "C" int32_t NrthAuditImage(const uint8_t *img, uint32_t size, NrthSigFind
                     }
                 }
                 if (tF > (uint32_t)hF) {
-                    total += tF - (uint32_t)hF;      /* footprint hits beyond the buffer */
+                    total += tF - (uint32_t)hF;
                 }
                 total += (uint32_t)hF;
                 if (hF > 0) {
@@ -768,7 +777,7 @@ extern "C" int32_t NrthAuditImage(const uint8_t *img, uint32_t size, NrthSigFind
     return withHits;
 }
 
-/* ---- file I/O (read-only) ------------------------------------------------- */
+
 #define NVXA_MAX_IMAGE (64u * 1024u * 1024u)
 
 static uint8_t *nvxa_read_file(const char *path, uint32_t *outSize)
@@ -815,12 +824,12 @@ extern "C" int32_t NrthAuditImageFile(const char *path, NrthSigFinding *findings
     return r;
 }
 
-/* -------------------------------------------------------------------------- */
-/* hidden-signature discovery (variant triage)                                  */
-/* Anchored sweep: only positions whose positional-XOR decode *starts* with a     */
-/* compiler function prologue are considered, which pins the key in one step and    */
-/* keeps random-byte noise out. Mirrors tools/nrth_sig_export.py (data-sweep pass).  */
-/* -------------------------------------------------------------------------- */
+
+
+
+
+
+
 static const char *const kPrologues[] = { "55 8B EC ", "53 8B DC " };
 #define NVXA_N_PROLOGUE ((int)(sizeof(kPrologues) / sizeof(kPrologues[0])))
 
@@ -836,7 +845,7 @@ static int nvxa_sig_like(const char *s, uint32_t n)
             return 0;
         }
     }
-    /* require at least one space-separated token pair */
+
     return strchr(s, ' ') != NULL;
 }
 
@@ -860,7 +869,7 @@ extern "C" int32_t NrthFindHiddenSignatures(const uint8_t *img, uint32_t size, u
     for (uint32_t si = 0; si < pe.nSections; ++si) {
         const char *nm = pe.sec[si].name;
         if (!(nm[0] == '.' && (nm[1] == 'd' || nm[1] == 'r' || nm[1] == 't'))) {
-            continue;                    /* .data / .rdata / .text only */
+            continue;
         }
         uint32_t slen = 0, srva = 0;
         const uint8_t *sd = NrthPeSectionData(&pe, si, &slen, &srva);
@@ -907,7 +916,7 @@ extern "C" int32_t NrthFindHiddenSignatures(const uint8_t *img, uint32_t size, u
                                                    srva + off, key, line);
                     }
                 }
-                break;                   /* one prefix per position */
+                break;
             }
         }
     }
@@ -931,7 +940,7 @@ extern "C" int32_t NrthAuditDiff(const uint8_t *cleanImg, uint32_t cleanSize,
         return rc;
     }
     int32_t alerted = 0;
-    /* one memset per call: rows is caller memory, so zero it before filling */
+
     for (uint32_t i = 0; i < NRTH_SIG_COUNT; ++i) {
         NrthAuditDiffRow *d = rows ? &rows[i] : NULL;
         const int found = (clean[i].fullHits + clean[i].patchedHits) > 0;
@@ -947,11 +956,11 @@ extern "C" int32_t NrthAuditDiff(const uint8_t *cleanImg, uint32_t cleanSize,
         d->susState = sus[i].state;
         d->susRva = sus[i].firstPatchedRva;
         d->susDetail = sus[i].detail;
-        /* Alignment: within one build a signature locates one function, so the RVA is the key
-         * that says "this row in the suspect image is the same function as this row in the
-         * baseline". Without that requirement, any jump thunk that happens to match a pattern in
-         * a different build is reported as a new detour - measured on NRTH.dll vs the
-         * reconstruction, where signature #18 matched a thunk at 0x0d9f91. */
+
+
+
+
+
         const int sameFn = found && (sus[i].firstPatchedRva == clean[i].firstFullRva ||
                                     sus[i].firstPatchedRva == clean[i].firstPatchedRva);
         d->addedFootprint = (patched && sameFn && clean[i].patchedHits == 0) ? 1u : 0u;
@@ -979,9 +988,9 @@ extern "C" int32_t NrthAuditDiffFiles(const char *cleanPath, const char *susPath
     return r;
 }
 
-/* -------------------------------------------------------------------------- */
-/* self test — evidence vectors taken from the original sample                  */
-/* -------------------------------------------------------------------------- */
+
+
+
 #define NVXA_CHECK(cond, name)                                                       \
     do {                                                                            \
         if (!(cond)) {                                                              \
@@ -1003,7 +1012,7 @@ extern "C" int32_t NrthAuditSelfTest(char *report, uint32_t cap)
                                   NRTH_AUDIT_VERSION);
     }
 
-    /* 1. codec: ciphertext recovered from NRTH.dll VA 0x10005c56 (inline dwords) */
+
     static const uint8_t ctClient[] = { 0xb0, 0xb8, 0xbc, 0xb3, 0xb9, 0xac, 0xf7, 0xbe, 0xb7, 0xb0 };
     char txt[64];
     uint32_t key = 0;
@@ -1011,21 +1020,21 @@ extern "C" int32_t NrthAuditSelfTest(char *report, uint32_t cap)
     NVXA_CHECK(n == 10 && strcmp(txt, "client.dll") == 0 && key == 0x2D,
                "codec: 'client.dll' record (key 0x2D)");
 
-    /* 2. codec: 8-byte SSE variant, ciphertext at NRTH.dll VA 0x1002069c */
+
     static const uint8_t ctNetc[] = { 0x8e, 0x84, 0x96, 0x80, 0xca, 0x81, 0x8a, 0x8b };
     n = NrthXorCrack(ctNetc, sizeof(ctNetc), txt, sizeof(txt), &key);
     NVXA_CHECK(n == 8 && strcmp(txt, "netc.dll") == 0 && key == 0x20,
                "codec: 'netc.dll' record (key 0x20)");
 
-    /* 3. codec: 12-byte record at NRTH.dll VA 0x100044df */
+
     static const uint8_t ctChunk[] = { 0x93, 0xb5, 0xa0, 0xa2, 0xb8, 0x87, 0xb0, 0xb4,
                                        0xb1, 0xb9, 0xbe, 0xaa };
     n = NrthXorCrack(ctChunk, sizeof(ctChunk), txt, sizeof(txt), &key);
     NVXA_CHECK(n == 12 && strcmp(txt, "@auto_inject") == 0,
                "codec: '@auto_inject' chunk name");
 
-    /* 4. codec: first 16 bytes of the .rdata block behind hook signature #1
-     *    (NRTH.dll VA 0x100f2060) -> "55 8B EC 8B 45 ?" */
+
+
     static const uint8_t ctSig1[] = { 0xe6, 0xe1, 0xf5, 0xee, 0x95, 0xf8, 0x9c, 0x99, 0xfb,
                                       0xe4, 0x9f, 0xfe, 0xeb, 0xd5, 0xc1, 0xdd };
     char pat[256];
@@ -1033,7 +1042,7 @@ extern "C" int32_t NrthAuditSelfTest(char *report, uint32_t cap)
     NVXA_CHECK(n == 16 && strcmp(pat, "55 8B EC 8B 45 ?") == 0,
                "codec: hook signature #1 head block");
 
-    /* 4b. tamper predicate: only real footprints count */
+
     NVXA_CHECK(NrthPrologueIsTamper(NRTH_PRO_KILL_RET) == 1 &&
                NrthPrologueIsTamper(NRTH_PRO_DETOUR_JMP32) == 1 &&
                NrthPrologueIsTamper(NRTH_PRO_STUB_IMM) == 1 &&
@@ -1042,14 +1051,14 @@ extern "C" int32_t NrthAuditSelfTest(char *report, uint32_t cap)
                NrthPrologueIsTamper(NRTH_PRO_PAD) == 0,
                "predicate: only detour/kill/stub states count as tampering");
 
-    /* 5. transform is symmetric (encode == decode) */
+
     uint8_t a[16], b[16];
     memcpy(a, ctClient, sizeof(ctClient));
     NrthXorTransform(a, 10, 0x2D, b, sizeof(b));
     NrthXorTransform(b, 10, 0x2D, a, sizeof(a));
     NVXA_CHECK(memcmp(a, ctClient, 10) == 0, "codec: transform is symmetric");
 
-    /* 6. pattern engine: wildcards + compile errors */
+
     uint8_t bytes[32], masks[32];
     uint32_t plen = 0;
     NVXA_CHECK(NrthPatCompile("55 8b ? A3 ?? C3", bytes, masks, 32, &plen) == 6 && plen == 6 &&
@@ -1073,7 +1082,7 @@ extern "C" int32_t NrthAuditSelfTest(char *report, uint32_t cap)
                    strncmp(pat, "E9 ? ? ? ? ? A3", 15) == 0,
                "pattern: 5-token substitution for a near detour");
 
-    /* 7. prologue classifier — the shapes the sample leaves behind */
+
     static const uint8_t pRet[] = { 0xC3, 0x90, 0x90, 0x90 };
     static const uint8_t pRetn[] = { 0xC2, 0x10, 0x00 };
     static const uint8_t pE9[] = { 0xE9, 0xFB, 0x04, 0x00, 0x00, 0x8B };
@@ -1090,7 +1099,7 @@ extern "C" int32_t NrthAuditSelfTest(char *report, uint32_t cap)
                "footprint: FF 25 absolute detour");
     NVXA_CHECK(NrthClassifyPrologue(pPad, 6, &detail) == NRTH_PRO_PAD, "footprint: nop padding");
 
-    /* 8. catalogue integrity: every generated row compiles and is anchored on a prologue */
+
     int catOk = (NrthSigCount() > 0);
     for (uint32_t i = 1; i <= NrthSigCount() && catOk; ++i) {
         const NrthSignature *s = NrthSigAt(i);
@@ -1111,7 +1120,7 @@ extern "C" int32_t NrthAuditSelfTest(char *report, uint32_t cap)
     }
     NVXA_CHECK(catOk, "catalogue: generated signature rows are well formed");
 
-    /* 9. robustness: garbage must never crash or read out of bounds */
+
     static const uint8_t junk[] = { 'M', 'Z', 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
     NrthPeView pv;
     NVXA_CHECK(NrthPeMap(junk, sizeof(junk), &pv) != NVXA_OK, "PE: malformed header rejected");

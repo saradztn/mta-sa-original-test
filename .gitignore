@@ -1,0 +1,13 @@
+# Python helper caches (tools/)
+__pycache__/
+*.pyc
+
+# Build outputs. test_parity.cpp looks for the compiled artefacts in bin/,
+# but built DLLs and EXEs are never committed - only the sources are.
+bin/
+*.obj
+*.o
+*.pdb
+*.ilk
+*.exe
+*.dll

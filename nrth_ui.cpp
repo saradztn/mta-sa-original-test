@@ -1,18 +1,27 @@
-/**
- * ============================================================================
- * nrth_ui.cpp — DARKANARCHY (by XRAOUF) — Bilingual Overlay UI (AR + EN)
- * ============================================================================
- * Design:
- *   - Dark anarchist theme: coal black surfaces, blood-red accents, bone text.
- *   - Embedded fonts (nrth_fonts.h):
- *       English : ChakraPetch-SemiBold.ttf
- *       Arabic  : IBMPlexSansArabic-SemiBold.ttf (Presentation Forms-B complete)
- *   - Arabic text is rendered via presentation forms with a full contextual
- *     joining shaper (isolated/final/initial/medial + lam-alef ligatures) and
- *     a simplified UAX#9 BiDi visual reorder (LTR base paragraph).
- *   - Branding: DARKANARCHY / by XRAOUF with a drawn anarchy-A circle logo.
- * ============================================================================
- */
+/* ============================================================================
+ *  فريق الحماية و استكشاف الثغرات - هاكرز ابيض
+ *  Security & Vulnerability Research Team — White Hat Hackers
+ * ----------------------------------------------------------------------------
+ *  MTA:SA security research test bed — mta-sa-original-test
+ *  Internal security research material. All rights reserved by the team above.
+ *  Redistribution, public release and reuse outside the team are not authorized.
+ *  NRTH-SEC-RESEARCH-HEADER
+ * ============================================================================ */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -33,9 +42,9 @@
 #include "csx_spoof/csx_spoof.h"
 #endif
 
-/* ===========================================================================
- * MTA PACKET_ID_* catalogue (.rdata 0x100e9be4..0x100eaaa4 & 0x100eb6a8)
- * =========================================================================== */
+
+
+
 static const NrthPacketDef kMtaPacketCatalog[] = {
     {   0, "PACKET_ID_SERVER_JOIN",                 false },
     {   1, "PACKET_ID_SERVER_JOIN_DATA",            false },
@@ -100,7 +109,7 @@ static const NrthPacketDef kMtaPacketCatalog[] = {
     {  66, "PACKET_ID_CUSTOM_DATA",                 false },
     {  67, "PACKET_ID_VOICE_DATA",                  false },
     {  68, "PACKET_ID_VOICE_END",                   false },
-    {  69, "PACKET_ID_CHEAT_CHALLENGEMEMORY",       false }, /* VA 0x100eb6a8 */
+    {  69, "PACKET_ID_CHEAT_CHALLENGEMEMORY",       false },
     {  70, "PACKET_ID_CHEAT_RETURN",                false },
     {  71, "PACKET_ID_MAP_LIST",                    false },
     {  72, "PACKET_ID_LUA_TIMERS",                  false },
@@ -111,10 +120,10 @@ static const NrthPacketDef kMtaPacketCatalog[] = {
     {  77, "PACKET_ID_PED_TASK",                    false },
     {  78, "PACKET_ID_PLAYER_NO_SOCKET",            false },
     {  79, "PACKET_ID_PLAYER_NETWORK_STATUS",       false },
-    {  80, "PACKET_ID_PLAYER_SCREENSHOT",           true  }, /* Report channel #1 */
-    {  81, "PACKET_ID_PLAYER_DIAGNOSTIC",           true  }, /* Report channel #2 */
-    {  82, "PACKET_ID_PLAYER_ACINFO",               true  }, /* Report channel #3 */
-    {  83, "PACKET_ID_PLAYER_TRANSGRESSION",        true  }, /* Report channel #4 */
+    {  80, "PACKET_ID_PLAYER_SCREENSHOT",           true  },
+    {  81, "PACKET_ID_PLAYER_DIAGNOSTIC",           true  },
+    {  82, "PACKET_ID_PLAYER_ACINFO",               true  },
+    {  83, "PACKET_ID_PLAYER_TRANSGRESSION",        true  },
     {  84, "PACKET_ID_RESEND_REQUEST",              false },
 };
 
@@ -126,9 +135,9 @@ extern "C" const NrthPacketDef *NrthUI_GetPacketCatalog(uint32_t *outCount)
     return kMtaPacketCatalog;
 }
 
-/* ===========================================================================
- * Bilingual core: language state, fonts, UTF-8 helpers
- * =========================================================================== */
+
+
+
 static bool   g_bArabic = false;
 static void  *g_pFontEn = NULL;
 static void  *g_pFontAr = NULL;
@@ -175,50 +184,50 @@ static size_t Utf8Encode(uint32_t cp, char *out, size_t outCap)
     return 4;
 }
 
-/* ===========================================================================
- * Arabic contextual shaping engine (U+0600..U+06FF -> Presentation Forms B)
- * =========================================================================== */
-enum { JT_N = 0, JT_R = 1, JT_D = 2 }; /* Non / Right / Dual joining */
+
+
+
+enum { JT_N = 0, JT_R = 1, JT_D = 2 };
 struct ArShapeEntry { uint32_t base; uint8_t join; uint16_t iso, fin, ini, med; };
 
 static const ArShapeEntry kArShapeTable[] = {
-    { 0x0621, JT_N, 0xFE80, 0xFE80, 0xFE80, 0xFE80 }, /* ء  HAMZA              */
-    { 0x0622, JT_R, 0xFE81, 0xFE82, 0xFE81, 0xFE82 }, /* آ  ALEF MADDA         */
-    { 0x0623, JT_R, 0xFE83, 0xFE84, 0xFE83, 0xFE84 }, /* أ  ALEF HAMZA ABOVE   */
-    { 0x0624, JT_R, 0xFE85, 0xFE86, 0xFE85, 0xFE86 }, /* ؤ  WAW HAMZA          */
-    { 0x0625, JT_R, 0xFE87, 0xFE88, 0xFE87, 0xFE88 }, /* إ  ALEF HAMZA BELOW   */
-    { 0x0626, JT_D, 0xFE89, 0xFE8A, 0xFE8B, 0xFE8C }, /* ئ  YEH HAMZA          */
-    { 0x0627, JT_R, 0xFE8D, 0xFE8E, 0xFE8D, 0xFE8E }, /* ا  ALEF               */
-    { 0x0628, JT_D, 0xFE8F, 0xFE90, 0xFE91, 0xFE92 }, /* ب  BEH                */
-    { 0x0629, JT_R, 0xFE93, 0xFE94, 0xFE93, 0xFE94 }, /* ة  TEH MARBUTA        */
-    { 0x062A, JT_D, 0xFE95, 0xFE96, 0xFE97, 0xFE98 }, /* ت  TEH                */
-    { 0x062B, JT_D, 0xFE99, 0xFE9A, 0xFE9B, 0xFE9C }, /* ث  THEH               */
-    { 0x062C, JT_D, 0xFE9D, 0xFE9E, 0xFE9F, 0xFEA0 }, /* ج  JEEM               */
-    { 0x062D, JT_D, 0xFEA1, 0xFEA2, 0xFEA3, 0xFEA4 }, /* ح  HAH                */
-    { 0x062E, JT_D, 0xFEA5, 0xFEA6, 0xFEA7, 0xFEA8 }, /* خ  KHAH               */
-    { 0x062F, JT_R, 0xFEA9, 0xFEAA, 0xFEA9, 0xFEAA }, /* د  DAL                */
-    { 0x0630, JT_R, 0xFEAB, 0xFEAC, 0xFEAB, 0xFEAC }, /* ذ  THAL               */
-    { 0x0631, JT_R, 0xFEAD, 0xFEAE, 0xFEAD, 0xFEAE }, /* ر  REH                */
-    { 0x0632, JT_R, 0xFEAF, 0xFEB0, 0xFEAF, 0xFEB0 }, /* ز  ZAIN               */
-    { 0x0633, JT_D, 0xFEB1, 0xFEB2, 0xFEB3, 0xFEB4 }, /* س  SEEN               */
-    { 0x0634, JT_D, 0xFEB5, 0xFEB6, 0xFEB7, 0xFEB8 }, /* ش  SHEEN              */
-    { 0x0635, JT_D, 0xFEB9, 0xFEBA, 0xFEBB, 0xFEBC }, /* ص  SAD                */
-    { 0x0636, JT_D, 0xFEBD, 0xFEBE, 0xFEBF, 0xFEC0 }, /* ض  DAD                */
-    { 0x0637, JT_D, 0xFEC1, 0xFEC2, 0xFEC3, 0xFEC4 }, /* ط  TAH                */
-    { 0x0638, JT_D, 0xFEC5, 0xFEC6, 0xFEC7, 0xFEC8 }, /* ظ  ZAH                */
-    { 0x0639, JT_D, 0xFEC9, 0xFECA, 0xFECB, 0xFECC }, /* ع  AIN                */
-    { 0x063A, JT_D, 0xFECD, 0xFECE, 0xFECF, 0xFED0 }, /* غ  GHAIN              */
-    { 0x0640, JT_D, 0x0640, 0x0640, 0x0640, 0x0640 }, /* ـ  TATWEEL            */
-    { 0x0641, JT_D, 0xFED1, 0xFED2, 0xFED3, 0xFED4 }, /* ف  FEH                */
-    { 0x0642, JT_D, 0xFED5, 0xFED6, 0xFED7, 0xFED8 }, /* ق  QAF                */
-    { 0x0643, JT_D, 0xFED9, 0xFEDA, 0xFEDB, 0xFEDC }, /* ك  KAF                */
-    { 0x0644, JT_D, 0xFEDD, 0xFEDE, 0xFEDF, 0xFEE0 }, /* ل  LAM                */
-    { 0x0645, JT_D, 0xFEE1, 0xFEE2, 0xFEE3, 0xFEE4 }, /* م  MEEM               */
-    { 0x0646, JT_D, 0xFEE5, 0xFEE6, 0xFEE7, 0xFEE8 }, /* ن  NOON               */
-    { 0x0647, JT_D, 0xFEE9, 0xFEEA, 0xFEEB, 0xFEEC }, /* ه  HEH                */
-    { 0x0648, JT_R, 0xFEED, 0xFEEE, 0xFEED, 0xFEEE }, /* و  WAW                */
-    { 0x0649, JT_R, 0xFEEF, 0xFEF0, 0xFEEF, 0xFEF0 }, /* ى  ALEF MAKSURA       */
-    { 0x064A, JT_D, 0xFEF1, 0xFEF2, 0xFEF3, 0xFEF4 }, /* ي  YEH                */
+    { 0x0621, JT_N, 0xFE80, 0xFE80, 0xFE80, 0xFE80 },
+    { 0x0622, JT_R, 0xFE81, 0xFE82, 0xFE81, 0xFE82 },
+    { 0x0623, JT_R, 0xFE83, 0xFE84, 0xFE83, 0xFE84 },
+    { 0x0624, JT_R, 0xFE85, 0xFE86, 0xFE85, 0xFE86 },
+    { 0x0625, JT_R, 0xFE87, 0xFE88, 0xFE87, 0xFE88 },
+    { 0x0626, JT_D, 0xFE89, 0xFE8A, 0xFE8B, 0xFE8C },
+    { 0x0627, JT_R, 0xFE8D, 0xFE8E, 0xFE8D, 0xFE8E },
+    { 0x0628, JT_D, 0xFE8F, 0xFE90, 0xFE91, 0xFE92 },
+    { 0x0629, JT_R, 0xFE93, 0xFE94, 0xFE93, 0xFE94 },
+    { 0x062A, JT_D, 0xFE95, 0xFE96, 0xFE97, 0xFE98 },
+    { 0x062B, JT_D, 0xFE99, 0xFE9A, 0xFE9B, 0xFE9C },
+    { 0x062C, JT_D, 0xFE9D, 0xFE9E, 0xFE9F, 0xFEA0 },
+    { 0x062D, JT_D, 0xFEA1, 0xFEA2, 0xFEA3, 0xFEA4 },
+    { 0x062E, JT_D, 0xFEA5, 0xFEA6, 0xFEA7, 0xFEA8 },
+    { 0x062F, JT_R, 0xFEA9, 0xFEAA, 0xFEA9, 0xFEAA },
+    { 0x0630, JT_R, 0xFEAB, 0xFEAC, 0xFEAB, 0xFEAC },
+    { 0x0631, JT_R, 0xFEAD, 0xFEAE, 0xFEAD, 0xFEAE },
+    { 0x0632, JT_R, 0xFEAF, 0xFEB0, 0xFEAF, 0xFEB0 },
+    { 0x0633, JT_D, 0xFEB1, 0xFEB2, 0xFEB3, 0xFEB4 },
+    { 0x0634, JT_D, 0xFEB5, 0xFEB6, 0xFEB7, 0xFEB8 },
+    { 0x0635, JT_D, 0xFEB9, 0xFEBA, 0xFEBB, 0xFEBC },
+    { 0x0636, JT_D, 0xFEBD, 0xFEBE, 0xFEBF, 0xFEC0 },
+    { 0x0637, JT_D, 0xFEC1, 0xFEC2, 0xFEC3, 0xFEC4 },
+    { 0x0638, JT_D, 0xFEC5, 0xFEC6, 0xFEC7, 0xFEC8 },
+    { 0x0639, JT_D, 0xFEC9, 0xFECA, 0xFECB, 0xFECC },
+    { 0x063A, JT_D, 0xFECD, 0xFECE, 0xFECF, 0xFED0 },
+    { 0x0640, JT_D, 0x0640, 0x0640, 0x0640, 0x0640 },
+    { 0x0641, JT_D, 0xFED1, 0xFED2, 0xFED3, 0xFED4 },
+    { 0x0642, JT_D, 0xFED5, 0xFED6, 0xFED7, 0xFED8 },
+    { 0x0643, JT_D, 0xFED9, 0xFEDA, 0xFEDB, 0xFEDC },
+    { 0x0644, JT_D, 0xFEDD, 0xFEDE, 0xFEDF, 0xFEE0 },
+    { 0x0645, JT_D, 0xFEE1, 0xFEE2, 0xFEE3, 0xFEE4 },
+    { 0x0646, JT_D, 0xFEE5, 0xFEE6, 0xFEE7, 0xFEE8 },
+    { 0x0647, JT_D, 0xFEE9, 0xFEEA, 0xFEEB, 0xFEEC },
+    { 0x0648, JT_R, 0xFEED, 0xFEEE, 0xFEED, 0xFEEE },
+    { 0x0649, JT_R, 0xFEEF, 0xFEF0, 0xFEEF, 0xFEF0 },
+    { 0x064A, JT_D, 0xFEF1, 0xFEF2, 0xFEF3, 0xFEF4 },
 };
 
 static const ArShapeEntry *ArShapeLookup(uint32_t cp)
@@ -229,7 +238,7 @@ static const ArShapeEntry *ArShapeLookup(uint32_t cp)
     return NULL;
 }
 
-/* Harakat / marks / invisible controls: transparent for the joining rules */
+
 static bool ArIsTransparent(uint32_t cp)
 {
     return (cp >= 0x064B && cp <= 0x065F) || cp == 0x0670 ||
@@ -237,16 +246,16 @@ static bool ArIsTransparent(uint32_t cp)
            cp == 0x200B || cp == 0x200E || cp == 0x200F || cp == 0x200D;
 }
 
-/**
- * Core shaper: logical codepoint stream -> presentation forms (logical order).
- * Handles isolated/final/initial/medial selection and the mandatory
- * LAM+ALEF ligatures (U+FEF5..U+FEFC).
- */
+
+
+
+
+
 size_t NrthShape_ArabicCodepoints(const uint32_t *in, size_t n, uint32_t *out, size_t outCap)
 {
     if (!in || !out || outCap == 0) return 0;
     size_t w = 0;
-    bool prevLinks = false; /* previous emitted joinable char connects forward */
+    bool prevLinks = false;
     for (size_t i = 0; i < n; ++i) {
         if (w >= outCap) break;
         uint32_t cp = in[i];
@@ -255,15 +264,15 @@ size_t NrthShape_ArabicCodepoints(const uint32_t *in, size_t n, uint32_t *out, s
         const ArShapeEntry *e = ArShapeLookup(cp);
         if (!e) { out[w++] = cp; prevLinks = false; continue; }
 
-        /* next non-transparent char */
+
         size_t j = i + 1;
         while (j < n && ArIsTransparent(in[j])) ++j;
         uint32_t nextCp = (j < n) ? in[j] : 0;
         const ArShapeEntry *ne = nextCp ? ArShapeLookup(nextCp) : NULL;
-        /* A following letter connects backward when it is D or R (not N) */
+
         bool nextJoinsBack = (ne && ne->join != JT_N);
 
-        /* Mandatory LAM + ALEF ligature */
+
         if (cp == 0x0644 &&
             (nextCp == 0x0622 || nextCp == 0x0623 || nextCp == 0x0625 || nextCp == 0x0627)) {
             uint32_t lig;
@@ -274,8 +283,8 @@ size_t NrthShape_ArabicCodepoints(const uint32_t *in, size_t n, uint32_t *out, s
                 default:     lig = prevLinks ? 0xFEFCu : 0xFEFBu; break;
             }
             out[w++] = lig;
-            for (size_t t = i + 1; t < j && w < outCap; ++t) out[w++] = in[t]; /* keep harakat */
-            prevLinks = false; /* ligature (alef tail) does not join forward */
+            for (size_t t = i + 1; t < j && w < outCap; ++t) out[w++] = in[t];
+            prevLinks = false;
             i = j;
             continue;
         }
@@ -292,12 +301,12 @@ size_t NrthShape_ArabicCodepoints(const uint32_t *in, size_t n, uint32_t *out, s
     return w;
 }
 
-/* ===========================================================================
- * Simplified UAX#9 BiDi visual reorder (LTR base paragraph)
- *   RTL strong chars -> level 1, numbers inside RTL -> level 2,
- *   neutrals adjacent to RTL -> level 1, strong LTR -> level 0.
- *   L2: reverse contiguous runs of level >= k for k = maxLevel..1.
- * =========================================================================== */
+
+
+
+
+
+
 static bool CpIsRtlStrong(uint32_t cp)
 {
     return (cp >= 0x0590 && cp <= 0x08FF) ||
@@ -328,7 +337,7 @@ size_t NrthBidi_ReorderVisual(const uint32_t *in, size_t n, uint32_t *out, size_
         else if (CpIsNumber(in[i]))    lv[i] = 2;
         else if (CpIsLtrStrong(in[i])) lv[i] = 0;
         else {
-            /* neutral: follow neighbouring RTL strength */
+
             bool prevR = (i > 0)     && CpIsRtlStrong(in[i - 1]);
             bool nextR = (i + 1 < n) && CpIsRtlStrong(in[i + 1]);
             lv[i] = (prevR || nextR) ? 1 : 0;
@@ -378,7 +387,7 @@ extern "C" const char *NrthUI_ShapeArabicText(const char *utf8In, char *outBuf, 
     return outBuf;
 }
 
-/* Rotation buffers for translated UI labels */
+
 static const char *TrGet(const char *en, const char *ar)
 {
     static char s_trBufs[24][768];
@@ -392,9 +401,9 @@ static const char *TrGet(const char *en, const char *ar)
 }
 #define L(en, ar) TrGet((en), (ar))
 
-/* ===========================================================================
- * Feature state & sliders (shared between UI and SPlayerHealthSync/SWeaponAimSync)
- * =========================================================================== */
+
+
+
 struct Feature { const char *label; const char *settings; bool on; int key; int mode; };
 static Feature s_cheatFeatures[] = {
     {"GodMode",        "GodMode Settings",        false, 0, 1},
@@ -425,7 +434,7 @@ static Feature s_vehicleFeatures[] = {
     {"Unlock Car",      "Unlock Car Settings",      false, 0, 1},
 };
 
-/* Feature label translation map (keys remain English for the settings logic) */
+
 static const char *FeatureTr(const char *key)
 {
     static char s_ftBuf[2][256];
@@ -490,7 +499,7 @@ extern "C" void NrthUI_SyncFeaturesToState(void)
         hs->bHighJump      = s_cheatFeatures[10].on ? 1 : 0;
         hs->bJetpack       = s_cheatFeatures[12].on ? 1 : 0;
 
-        /* Vehicle features (0x10148f10..0x10149110 in NRTH.dll) */
+
         hs->bVehGodMode    = s_vehicleFeatures[0].on ? 1 : 0;
         hs->bVehicleChaos  = s_vehicleFeatures[1].on ? 1 : 0;
         hs->bDriveWater    = s_vehicleFeatures[2].on ? 1 : 0;
@@ -519,13 +528,13 @@ extern "C" void NrthUI_SyncFeaturesToState(void)
     (void)s_antiAfk;
 }
 
-/* ===========================================================================
- * Shared live hook state (Resources, Events, Packets, Dumper, Markers)
- * =========================================================================== */
+
+
+
 struct DumperFileEntry {
     std::string name;
     std::string code;
-    std::string resource;  /* resource name parsed from the chunk name */
+    std::string resource;
 };
 struct PacketRow { std::string name; int id; bool blocked; std::string time; };
 struct MarkerRow { std::string name; float x, y, z; };
@@ -551,7 +560,7 @@ static void EnsurePacketsPopulated()
     s_packetsPopulated = true;
 }
 
-/* Matches RecordCapturedScript (VA 0x10004220..0x10004473 in NRTH.dll) */
+
 extern "C" void NrthUI_OnClientScriptLoaded(const char *chunkName, const char *code, size_t len)
 {
     if (!chunkName || !chunkName[0] || !code || len == 0) {
@@ -586,7 +595,7 @@ extern "C" void NrthUI_OnClientScriptLoaded(const char *chunkName, const char *c
     }
 }
 
-/* Matches Hook_Client_100050a0 & Hook_Client_100056f0 (VA 0x100050a0 / 0x100056f0 in NRTH.dll) */
+
 extern "C" bool NrthUI_ShouldBlockServerEvent(const char *eventName)
 {
     if (!eventName || !eventName[0]) {
@@ -619,7 +628,7 @@ extern "C" bool NrthUI_ShouldBlockServerEvent(const char *eventName)
     return false;
 }
 
-/* Matches Hook_Client_100052b0 (VA 0x100052b0..0x10005494 in NRTH.dll) */
+
 extern "C" void NrthUI_OnResourceStarted(const char *resName)
 {
     if (!resName || !resName[0]) {
@@ -636,7 +645,7 @@ extern "C" void NrthUI_OnResourceStarted(const char *resName)
     }
 }
 
-/* Matches Hook_Netc_SendPacket_1001da80 packet table lookup */
+
 extern "C" bool NrthUI_OnPacketSent(unsigned char packetId)
 {
     EnsurePacketsPopulated();
@@ -668,11 +677,11 @@ extern "C" bool NrthUI_GetMarkerAt(uint32_t idx, float *outX, float *outY, float
     return true;
 }
 
-/* ===========================================================================
- * Lua VM Bridge execution (0x1013bf04 registry stride 0x1C, L at +0x18,
- * default_L 0x1013c95c, loadbuffer 0x1013c94c with "@custom", pcall 0x1013c974,
- * flag 0x1013c939, script buffer 0x1013beec, VirtualQuery guard)
- * =========================================================================== */
+
+
+
+
+
 extern "C" bool NrthUI_ExecuteLuaViaBridge(const char *code, size_t len, int vmMode)
 {
     if (!code || len == 0) {
@@ -731,9 +740,9 @@ extern "C" bool NrthUI_ExecuteLuaViaBridge(const char *code, size_t len, int vmM
     return false;
 }
 
-/* ===========================================================================
- * Full Dear ImGui + Embedded Lua 5.4.6 UI (Windows build)
- * =========================================================================== */
+
+
+
 #if defined(_WIN32) && !defined(NRTH_HEADLESS_TEST)
 
 #include "imgui.h"
@@ -773,7 +782,7 @@ static void EnsureLuaVM()
     lua_setglobal(s_L, "log");
 }
 
-/* Bounded substring search (the buffer may not be NUL-terminated). */
+
 static bool BufferContains(const char *buf, size_t len, const char *needle, size_t nlen)
 {
     if (nlen == 0 || len < nlen) return false;
@@ -782,25 +791,25 @@ static bool BufferContains(const char *buf, size_t len, const char *needle, size
     return false;
 }
 
-/*
- * Build a sandbox wrapper that executes the user's code inside the target
- * MTA Lua VM WITHOUT corrupting the resource's logic:
- *
- *   - the user chunk runs with a private environment:
- *       writes  -> the sandbox table (never the resource globals)
- *       reads   -> fall through to the resource environment (getfenv(1))
- *   - execution is pcall()-protected, so a runtime error in the user code
- *     cannot leave the VM in a bad state.
- *
- * The MTA client VMs are Lua 5.1, so loadstring/setfenv/getfenv exist there.
- * Lua 5.1 has only ONE long-string form (]]...]]); equals-level long
- * brackets are a Lua 5.2 feature and are NOT valid in the MTA VMs (verified
- * on a Lua 5.1 build: the level-1 opener fails to parse). The user code is
- * therefore embedded as a long string when it contains no close sequence,
- * and as an escaped short string otherwise.
- *
- * Returns false if the wrapped script exceeds the 64 KB bridge buffer cap.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 static bool BuildSandboxWrapper(const char *code, size_t len, std::string &out)
 {
     std::string body;
@@ -848,9 +857,9 @@ static bool BuildSandboxWrapper(const char *code, size_t len, std::string &out)
 
 static bool RunLuaBuffer(const char *code, size_t len, const char *chunkName, int vmMode)
 {
-    /* Sandbox the user code before it touches an MTA VM: global writes from
-     * injected code used to clobber the target resource's environment, which
-     * broke that resource's logic after injection. */
+
+
+
     std::string sandbox;
     bool wrapped = BuildSandboxWrapper(code, len, sandbox);
     if (!wrapped && s_console.size() < 16384) {
@@ -859,9 +868,9 @@ static bool RunLuaBuffer(const char *code, size_t len, const char *chunkName, in
     if (wrapped && NrthUI_ExecuteLuaViaBridge(sandbox.c_str(), sandbox.size(), vmMode)) {
         return true;
     }
-    /* Fallback to the embedded Lua 5.4.6 VM (isolated, no resource involved) */
 
-    /* Fallback to the embedded Lua 5.4.6 VM using "@custom" chunk name */
+
+
     static char s_customChunk[sizeof(kCt_CustomChunk)] = {0};
     static bool s_customGate = false;
     const char *effectiveChunk = chunkName ? chunkName :
@@ -892,7 +901,7 @@ static int  s_cheatSub   = 0;
 static bool s_menuOpen   = true;
 
 static char s_editorBuf[65536] = "-- DARKANARCHY lua editor\n";
-static int  s_vmIndex     = 0;  /* "Default VM", "@custom" */
+static int  s_vmIndex     = 0;
 
 static std::string s_lastAction;
 
@@ -919,9 +928,9 @@ static int  s_bindCapture = -1;
 
 static int s_vehicleSel = 0;
 
-/* ---------------------------------------------------------------------------
- * DARKANARCHY theme: coal black + blood red + bone white
- * ------------------------------------------------------------------------- */
+
+
+
 static const ImVec4 kBlood      = ImVec4(0.73f, 0.05f, 0.05f, 1.00f);
 static const ImVec4 kBloodHi    = ImVec4(0.92f, 0.10f, 0.10f, 1.00f);
 static const ImVec4 kBloodDim   = ImVec4(0.42f, 0.05f, 0.05f, 1.00f);
@@ -988,9 +997,9 @@ void NrthUI_ApplyTheme()
     c[ImGuiCol_NavCursor]        = kBlood;
 }
 
-/* ---------------------------------------------------------------------------
- * Anarchy-A circle logo drawn with the ImGui foreground draw list
- * ------------------------------------------------------------------------- */
+
+
+
 static void DrawAnarchyLogo(ImDrawList *dl, const ImVec2 &center, float radius, float thickness)
 {
     if (!dl) return;
@@ -998,20 +1007,20 @@ static void DrawAnarchyLogo(ImDrawList *dl, const ImVec2 &center, float radius, 
     const ImU32 colRed   = IM_COL32(210, 30, 30, 255);
     const ImU32 colRedHi = IM_COL32(255, 70, 60, 255);
 
-    /* glow rings */
+
     dl->AddCircle(center, radius + 4.0f, colGlow, 0, thickness + 3.0f);
     dl->AddCircle(center, radius, colRed, 0, thickness);
 
-    /* A shape: apex at top of circle, legs to the lower-left/right chord points */
+
     const ImVec2 apex(center.x, center.y - radius);
-    const double ang = 3.9269908; /* 225 deg (lower-left) & 315 deg (lower-right) */
+    const double ang = 3.9269908;
     const ImVec2 legL(center.x + radius * 0.74f * (float)-cos(0.7853982), center.y + radius * 0.74f * (float)sin(0.7853982));
     const ImVec2 legR(center.x + radius * 0.74f * (float) cos(0.7853982), center.y + radius * 0.74f * (float) sin(0.7853982));
     (void)ang;
     dl->AddLine(apex, legL, colRed, thickness);
     dl->AddLine(apex, legR, colRed, thickness);
 
-    /* crossbar extending slightly past the legs (classic anarchy A) */
+
     const float barY = center.y + radius * 0.30f;
     const float barHalf = radius * 0.62f;
     dl->AddLine(ImVec2(center.x - barHalf, barY), ImVec2(center.x + barHalf, barY), colRedHi, thickness);
@@ -1442,8 +1451,8 @@ static void DrawPackets()
     ImGui::EndChild();
 }
 
-/* Sanitize a name for use as a folder/file name on NTFS (keeps the charset
- * NTFS + path rules are happy with; everything else is dropped or '_'). */
+
+
 static std::string SanitizePathName(const std::string &in, const char *fallback)
 {
     std::string out;
@@ -1475,10 +1484,10 @@ static BOOL CALLBACK NrthUI_FindMainWndProc(HWND h, LPARAM lp)
     return TRUE;
 }
 
-/* Best-effort name of the server the client is attached to, for the dump
- * folder: the MTA client window title carries the server name while
- * connected (e.g. "MTA:SA - <server>"). Pure Win32, no memory offsets.
- * Falls back to "unknown" when no usable title can be read. */
+
+
+
+
 static std::string NrthUI_GetServerNameForDump()
 {
     static char s_title[512];
@@ -1501,9 +1510,9 @@ static std::string NrthUI_GetServerNameForDump()
     return SanitizePathName(t, "unknown");
 }
 
-/* Write one captured script to disk under the per-server tree:
- *   C:\NVX\dump\<server name>\<resource name>\<script file>
- */
+
+
+
 static bool SaveDumperEntryToDisk(const DumperFileEntry &entry)
 {
     CreateDirectoryA("C:\\NVX", NULL);
@@ -1726,7 +1735,7 @@ static void DrawOtherTab()
         FeatureRow(s_cheatFeatures[i], id);
     }
     ImGui::Separator();
-    /* Action buttons matching 0x1002a580..0x1002a880 in NRTH.dll */
+
     if (ImGui::Button(L("All Weapons", "كل الأسلحة"))) {
         s_cheatFeatures[13].on = true;
         NrthUI_SyncFeaturesToState();
@@ -1758,14 +1767,14 @@ static void DrawOtherTab()
         FeatureAction(s_cheatFeatures[12].on ? L("Jetpack enabled", "تم تفعيل الجت باك")
                                              : L("Jetpack disabled", "تم إيقاف الجت باك"));
     }
-    /* ======================================================================
-     * CSX spoofer feature (new) — faithful replica of CSX.exe "Reset MTA
-     * Serial" (workhorse 0x0040EFF0, UI wrapper 0x0040FA60, helpers
-     * 0x0040EC10/0x0040E8C0). Sample SHA-256 d5ed9e6a57952d2a2d7876813376784868126e9295ee55ba01b45a395fc4ee556.
-     * All original offsets and the step-by-step method are documented in
-     * csx_spoof/csx_spoof.h (evidence block) and CSX_REPORT.md.
-     * Result category R2: behavioral reconstruction, not byte-for-byte.
-     * ==================================================================== */
+
+
+
+
+
+
+
+
     ImGui::Separator();
     if (ImGui::Button(L("Reset MTA Serial (CSX)", "إعادة ضبط سيريال MTA (CSX)"))) {
         CSX_SpooferResetMtaSerial(NULL);
@@ -1941,7 +1950,7 @@ static void DrawConfigTab()
     ImGui::InputText(L("Name", "الاسم##sa"), s_cfgName, sizeof(s_cfgName));
     if (ImGui::Button(L("Save", "حفظ"))) {
         std::string f = std::string(s_cfgName) + ".ovr";
-        /* Writes both <name>.ovr ("OVRCFG") and C:\Overwack\loader_config.cfg */
+
         NrthConfig_SaveOvr(f.c_str(), NULL);
         char msg[192];
         snprintf(msg, sizeof(msg), "%s: %s", L("Config saved", "تم حفظ الإعداد"), f.c_str());
@@ -2050,7 +2059,7 @@ static void DrawConfigTab()
     ImGui::Columns(1);
 }
 
-/* Matches PollHotkeys at VA 0x10012250 in NRTH.dll */
+
 static void PollHotkeys_10012250(void)
 {
     if (s_capturingFeature || s_waitingForKey) {
@@ -2060,13 +2069,13 @@ static void PollHotkeys_10012250(void)
         for (int i = 0; i < count; ++i) {
             Feature &f = arr[i];
             if (f.key <= 0) continue;
-            if (f.mode == 1) { /* Toggle */
+            if (f.mode == 1) {
                 if (GetAsyncKeyState(f.key) & 1) {
                     f.on = !f.on;
                     NrthUI_SyncFeaturesToState();
                     TriggerFeatureImmediateAction(f);
                 }
-            } else { /* Hold */
+            } else {
                 bool down = (GetAsyncKeyState(f.key) & 0x8000) != 0;
                 if (f.on != down) {
                     f.on = down;
@@ -2079,7 +2088,7 @@ static void PollHotkeys_10012250(void)
     pollFeatureArray(s_vehicleFeatures, (int)(sizeof(s_vehicleFeatures) / sizeof(Feature)));
 }
 
-/* Watermark — DARKANARCHY | FPS | Server (matches VA 0x10012bc0) */
+
 static void DrawWatermark_10012bc0(void)
 {
     if (!g_cfg.watermark) {
@@ -2123,7 +2132,7 @@ static void DrawWatermark_10012bc0(void)
     ImGui::End();
 }
 
-/* Floating keybind list (matches VA 0x100130a0) */
+
 static void DrawKeybindList_100130a0(void)
 {
     if (!s_showKeybindWindow) {
@@ -2160,7 +2169,7 @@ static void DrawKeybindList_100130a0(void)
     ImGui::End();
 }
 
-/* Toast notifications (matches VA 0x10016990) */
+
 static void DrawNotifications_10016990(void)
 {
     if (!g_cfg.notifications || s_notifications.empty()) {
@@ -2191,7 +2200,7 @@ static void DrawNotifications_10016990(void)
             DrawAnarchyLogo(dl, ImVec2(p.x + 12.0f, p.y + 16.0f), 9.0f, 1.6f);
             ImGui::SetCursorPosX(p.x + 28.0f);
             ImGui::TextColored(kBloodHi, "DARKANARCHY");
-            /* clip text to the toast width so long Arabic messages wrap safely */
+
             ImGui::PushTextWrapPos(p.x + 262.0f);
             ImGui::TextUnformatted(s_notifications[i].text.c_str());
             ImGui::PopTextWrapPos();
@@ -2209,7 +2218,7 @@ void NrthUI_Build()
         return;
     }
 
-    /* ---------------- Header: logo + brand + byline + language toggle --- */
+
     ImDrawList *dl = ImGui::GetWindowDrawList();
     ImVec2 hp = ImGui::GetCursorScreenPos();
     float logoR = 22.0f;
@@ -2228,7 +2237,7 @@ void NrthUI_Build()
     ImGui::SetCursorScreenPos(ImVec2(hp.x + 14.0f + logoR * 2.0f + 14.0f, hp.y + 34.0f));
     ImGui::TextDisabled("by XRAOUF");
 
-    /* Language toggle (right side of header) */
+
     float toggleW = 110.0f;
     ImGui::SetCursorScreenPos(ImVec2(headerMax.x - toggleW - 12.0f, hp.y + (headerH - 26.0f) * 0.5f));
     ImGui::PushStyleColor(ImGuiCol_Button, kBloodDim);
@@ -2242,14 +2251,14 @@ void NrthUI_Build()
     ImGui::SetCursorScreenPos(ImVec2(hp.x, hp.y + headerH + 8.0f));
     StatusLine();
     ImGui::Separator();
-    /* ---------------- End header ---------------------------------------- */
+
 
     static const char *kTopEn[] = {"Scripts", "Dumper", "Cheat", "Vehicle", "Config"};
     static const char *kTopAr[] = {"سكربتات", "ملفات", "غش", "مركبات", "إعدادات"};
     float w = (ImGui::GetContentRegionAvail().x - 4 * 8.f) / 5.f;
     for (int i = 0; i < 5; ++i) {
         char hid[32];
-        snprintf(hid, sizeof(hid), "nvx_top_%d", i); /* stable IDs across languages */
+        snprintf(hid, sizeof(hid), "nvx_top_%d", i);
         if (TabButton(L(kTopEn[i], kTopAr[i]), hid, s_topTab == i, ImVec2(w, 36))) s_topTab = i;
         if (i < 4) ImGui::SameLine();
     }
@@ -2325,7 +2334,7 @@ extern "C" void NrthUI_RenderFrame(bool menuOpen)
     if (font) ImGui::PopFont();
 }
 
-#else /* Headless / non-Win32 build for verification tests */
+#else
 
 extern "C" void NrthUI_ApplyTheme(void) {}
 extern "C" void NrthUI_Build(void) {}

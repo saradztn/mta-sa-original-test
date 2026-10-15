@@ -1,12 +1,21 @@
+/* ============================================================================
+ *  فريق الحماية و استكشاف الثغرات - هاكرز ابيض
+ *  Security & Vulnerability Research Team — White Hat Hackers
+ * ----------------------------------------------------------------------------
+ *  MTA:SA security research test bed — mta-sa-original-test
+ *  Internal security research material. All rights reserved by the team above.
+ *  Redistribution, public release and reuse outside the team are not authorized.
+ *  NRTH-SEC-RESEARCH-HEADER
+ * ============================================================================ */
 #pragma once
-/**
- * ============================================================================
- * nrth_fonts.h — Embedded TrueType Fonts for DARKANARCHY (by XRAOUF)
- *   - kFontEnglishTTF : ChakraPetch-SemiBold.ttf (78,604 bytes, Latin/English UI)
- *   - kFontArabicTTF  : IBMPlexSansArabic-SemiBold.ttf (244,500 bytes, Arabic UI +
- *                       100% Arabic Presentation Forms-B U+FE70..U+FEFC)
- * ============================================================================
- */
+
+
+
+
+
+
+
+
 #include <stddef.h>
 #include <stdint.h>
 
