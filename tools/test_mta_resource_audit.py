@@ -134,6 +134,16 @@ def test_demo_tree(tmp):
     check(f_good == [], "demo_good is clean (got %s)" % sorted(counts(f_good)))
     check(audit.mask_lua("") == "", "mask_lua handles an empty file")
 
+    # an unreferenced executable in a subfolder is not a delivery channel
+    tmp2 = os.path.join(tmp, "unref")
+    write_resource(tmp2, "with_tools",
+                   {"x.lua": "return true\n", "tools/helper.sh": "#!/bin/sh\n"},
+                   meta='<meta><script src="x.lua" type="server"/></meta>')
+    f_unref = audit.analyse(tmp2)
+    unref = [x for x in f_unref if x.rule == "MTA009"]
+    check(len(unref) == 1 and unref[0].severity == "Low",
+          "an executable nothing references is reported Low, not High")
+
     # severity: the planted binary and the exec-on-data must be High
     sev = {f.rule: f.severity for f in f_bad}
     check(sev.get("MTA003") == "High" and sev.get("MTA002") == "High",

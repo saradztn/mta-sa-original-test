@@ -75,8 +75,8 @@ RULES = {
                "exported privileged function without an ACL check"),
     "MTA008": ("Medium", "اسم حدث أصلي (native) صار قابلاً للتحريك من العميل",
                "native event name made remotely triggerable"),
-    "MTA009": ("High", "ملف تنفيذي مزروع داخل مورد (.dll/.exe/.so)",
-               "planted binary inside a resource"),
+    "MTA009": ("High", "ملف تنفيذي مُشار إليه في meta.xml (يُرسل للاعبين)",
+               "binary referenced by meta.xml (shipped to players)"),
     "MTA010": ("High", "بصمات عائلة أداة الغش NRTH/NVX/DARKANARCHY",
                "cheat-family signature NRTH/NVX/DARKANARCHY"),
     "MTA011": ("Medium", "بيانات عنصر يكتبها العميل ويعتمد عليها السيرفر",
@@ -269,9 +269,9 @@ def line_of(text, offset):
 
 
 class Finding:
-    def __init__(self, rule, resource, path, line, snippet, detail):
+    def __init__(self, rule, resource, path, line, snippet, detail, severity=None):
         self.rule = rule
-        self.severity = RULES[rule][0]
+        self.severity = severity or RULES[rule][0]
         self.resource = resource
         self.path = path
         self.line = line
@@ -605,17 +605,56 @@ def rule_cheat_markers(root, out, res_hint=None):
     return out
 
 
+def meta_referenced_files(rdir):
+    """Paths mentioned by meta.xml (scripts, files, exports' sources)."""
+    referenced = set()
+    meta = os.path.join(rdir, "meta.xml")
+    if not os.path.isfile(meta):
+        return referenced
+    try:
+        tree = ET.parse(meta)
+    except ET.ParseError:
+        return referenced
+    for el in tree.getroot():
+        src = el.get("src") or el.get("file")
+        if src:
+            referenced.add(os.path.normpath(os.path.join(rdir, src)))
+    return referenced
+
+
 def rule_binaries(root, out, res_hint=None):
+    """Executables inside a resource.
+
+    MTA downloads the scripts and <file> entries of a resource to every client;
+    other files in the folder are not sent. So a binary that meta.xml references
+    is a real problem (players receive it, and it is how leaked cheat loaders get
+    distributed), while one that nothing references is clutter to remove, not an
+    active delivery channel. The rule reports the two differently instead of
+    crying wolf about a test script sitting in a subfolder.
+    """
     for path in iter_files(root):
         ext = os.path.splitext(path)[1].lower()
-        if ext in BINARY_EXT:
-            res = res_hint or (path[len(root):].strip(os.sep).split(os.sep)[0]
-                               if path.startswith(root) else "?")
+        if ext not in BINARY_EXT:
+            continue
+        res = res_hint or (path[len(root):].strip(os.sep).split(os.sep)[0]
+                           if path.startswith(root) else "?")
+        # find the owning resource directory (the one with meta.xml)
+        owner = os.path.dirname(path)
+        while owner and len(owner) > len(root) and not os.path.isfile(os.path.join(owner, "meta.xml")):
+            owner = os.path.dirname(owner)
+        referenced = os.path.normpath(path) in meta_referenced_files(owner) if owner else False
+        size = os.path.getsize(path)
+        if referenced:
             out.append(Finding("MTA009", res, path, 1, os.path.basename(path),
-                               "executable '%s' inside the resource tree (%d bytes). The "
-                               "MTA server cannot run it; it will be shipped to players "
-                               "at download time. Remove it or explain it in writing."
-                               % (ext, os.path.getsize(path))))
+                               "executable '%s' (%d bytes) is referenced by meta.xml, so the "
+                               "server sends it to every connecting player. Remove it or "
+                               "explain it in writing." % (ext, size)))
+        else:
+            out.append(Finding("MTA009", res, path, 1, os.path.basename(path),
+                               "executable '%s' (%d bytes) sits in the resource folder but "
+                               "nothing in meta.xml references it, so players do not receive "
+                               "it. Dead weight rather than a delivery channel - still worth "
+                               "deleting." % (ext, size), severity="Low"))
     return out
 
 
@@ -733,10 +772,11 @@ def render_text(findings, root):
     lines.append("")
     current = None
     for f in findings:
-        if f.rule != current:
-            current = f.rule
-            sev, ar, en = RULES[f.rule]
-            lines.append("[%s] %s — %s" % (sev, f.rule, en))
+        key = (f.rule, f.severity)          # a rule can be High or Low depending on facts
+        if key != current:
+            current = key
+            _sev, _ar, en = RULES[f.rule]
+            lines.append("[%s] %s — %s" % (f.severity, f.rule, en))
         rel = os.path.relpath(f.path, root) if f.path.startswith(root) else f.path
         lines.append("  %s:%d" % (rel, f.line))
         lines.append("    %s" % f.detail)
