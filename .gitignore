@@ -2,6 +2,11 @@
 __pycache__/
 *.pyc
 
+# Generated at build time: the Lua host and the Lua sources extracted from
+# vendor.zip by tools/build_lua_runner.sh. Never commit these - the script
+# recreates them from vendor.zip.
+build/
+
 # Build outputs. test_parity.cpp looks for the compiled artefacts in bin/,
 # but built DLLs and EXEs are never committed - only the sources are.
 bin/

@@ -1,0 +1,15 @@
+<meta>
+    <info author="Security &amp; Vulnerability Research Team — White Hat Hackers"
+          name="ac_heuristics"
+          version="0.9.0"
+          type="script"
+          description="Server-side cheat heuristics: scores suspicious damage behaviour and explains it to admins. Labels, never bans."/>
+
+    <script src="config.lua"  type="server"/>
+    <script src="ac_core.lua" type="server"/>
+    <script src="server.lua"  type="server"/>
+    <script src="client.lua"  type="client"/>
+
+    <export function="getAcReport" type="server"/>
+    <export function="getAcConfig" type="server"/>
+</meta>
